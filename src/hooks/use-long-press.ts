@@ -3,10 +3,13 @@
 import { useRef, type PointerEvent } from "react";
 
 /**
- * Long-press (500ms) for touch + pointer. Cancels on >10px movement so
- * scrolling never triggers it. Pair with onContextMenu for desktop right-click.
+ * Long-press (500ms) → dispatches a synthetic `contextmenu` event on the
+ * pressed element, so ContextMenuTrigger opens for touch users the same way
+ * right-click does on desktop. Cancels on >10px movement so scrolling and
+ * drags never trigger it. `fired` lets tap handlers suppress the tap that
+ * follows a long-press.
  */
-export function useLongPress(onLongPress: () => void) {
+export function useLongPress() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
   const fired = useRef(false);
@@ -23,9 +26,13 @@ export function useLongPress(onLongPress: () => void) {
       onPointerDown(e: PointerEvent) {
         fired.current = false;
         origin.current = { x: e.clientX, y: e.clientY };
+        const target = e.currentTarget;
+        const { clientX, clientY } = e;
         timer.current = setTimeout(() => {
           fired.current = true;
-          onLongPress();
+          target.dispatchEvent(
+            new MouseEvent("contextmenu", { bubbles: true, clientX, clientY }),
+          );
         }, 500);
       },
       onPointerMove(e: PointerEvent) {

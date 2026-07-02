@@ -68,3 +68,8 @@ export async function toggleChecked(id: string): Promise<void> {
 export function deleteItem(id: string): Promise<void> {
   return db.items.delete(id);
 }
+
+/** Undo support — re-adds a deleted item with its original id and position. */
+export function restoreItem(item: Item): Promise<string> {
+  return db.items.add(item);
+}

@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { useLongPress } from "@/hooks/use-long-press";
 import { archiveList, duplicateList, getItems, togglePinned } from "@/lib/db";
 import { formatSen } from "@/lib/money";
@@ -16,8 +15,7 @@ import { cn } from "@/lib/utils";
 import { shoppingTotals, type List, type ShoppingItem } from "@/lib/types/list";
 
 export function ListCard({ list }: { list: List }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const { fired, handlers } = useLongPress(() => setMenuOpen(true));
+  const { fired, handlers } = useLongPress();
   const items = useLiveQuery(() => getItems(list.id), [list.id]);
 
   const completed = list.type === "shopping" && list.completedAt !== null;
@@ -49,17 +47,13 @@ export function ListCard({ list }: { list: List }) {
   }
 
   return (
-    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-      <DropdownMenuTrigger asChild>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
         <Link
           href={`/list?id=${list.id}`}
           {...handlers}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setMenuOpen(true);
-          }}
           onClick={(e) => {
-            if (fired.current || menuOpen) e.preventDefault();
+            if (fired.current) e.preventDefault();
           }}
           className={cn(
             "flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs transition-colors select-none hover:bg-secondary/40",
@@ -95,14 +89,14 @@ export function ListCard({ list }: { list: List }) {
             </p>
           </div>
         </Link>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => void togglePinned(list.id)}>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => void togglePinned(list.id)}>
           {list.pinned ? "Unpin" : "Pin"}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void duplicateList(list.id)}>Duplicate</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void archiveList(list.id)}>Archive</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => void duplicateList(list.id)}>Duplicate</ContextMenuItem>
+        <ContextMenuItem onClick={() => void archiveList(list.id)}>Archive</ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
