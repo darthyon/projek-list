@@ -5,6 +5,7 @@ import {
   useContext,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent,
   type ReactNode,
   type RefObject,
@@ -29,6 +30,10 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
   const suppressTap = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
+  const activePointerId = useRef<number | null>(null);
+  const activeElement = useRef<Element | null>(null);
+
+  const reorderStyle: CSSProperties = { touchAction: armed ? "none" : "pan-y" };
 
   function clearTimer() {
     if (timer.current) clearTimeout(timer.current);
@@ -38,6 +43,8 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
   function clearGestureSoon() {
     setPressing(false);
     setArmed(false);
+    activePointerId.current = null;
+    activeElement.current = null;
     setTimeout(() => {
       suppressTap.current = false;
     }, 0);
@@ -56,8 +63,11 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
         value={value}
         dragListener={false}
         dragControls={dragControls}
+        style={reorderStyle}
         onPointerDown={(event: PointerEvent) => {
           if (isInteractiveTarget(event.target)) return;
+          activeElement.current = event.currentTarget;
+          activePointerId.current = event.pointerId;
           origin.current = { x: event.clientX, y: event.clientY };
           setPressing(true);
           setArmed(false);
@@ -65,11 +75,24 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
           timer.current = setTimeout(() => {
             suppressTap.current = true;
             setArmed(true);
+            const element = activeElement.current;
+            const pointerId = activePointerId.current;
+            if (element && pointerId !== null) {
+              try {
+                element.setPointerCapture(pointerId);
+              } catch {
+                // The pointer may already be released/cancelled on mobile browsers.
+              }
+            }
             navigator.vibrate?.(8);
             dragControls.start(event);
           }, 300);
         }}
         onPointerMove={(event: PointerEvent) => {
+          if (suppressTap.current) {
+            event.preventDefault();
+            return;
+          }
           if (!origin.current || suppressTap.current) return;
           const dx = event.clientX - origin.current.x;
           const dy = event.clientY - origin.current.y;

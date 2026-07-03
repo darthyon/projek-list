@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AnimatePresence, LayoutGroup, Reorder, motion } from "motion/react";
@@ -28,13 +28,16 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
   const items = useLiveQuery(() => getItems(list.id), [list.id]) as
     | ShoppingItem[]
     | undefined;
+  const headerRef = useRef<HTMLDivElement>(null);
+  const listStartRef = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [padItem, setPadItem] = useState<ShoppingItem | null>(null);
 
   if (items === undefined) return null;
 
-  const { total, unpricedCount } = shoppingTotals(items);
+  const shoppingItems = items;
+  const { total, unpricedCount } = shoppingTotals(shoppingItems);
 
   function remove(item: ShoppingItem) {
     void deleteItem(item.id);
@@ -58,20 +61,44 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
     void reorderItems(nextItems.map((item) => item.id));
   }
 
+  function focusComposerContext() {
+    window.requestAnimationFrame(() => {
+      const header = headerRef.current;
+      const target = listStartRef.current;
+      if (!header || !target) return;
+
+      const headerRect = header.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const composerSpace = shoppingItems.length > 0 ? 160 : 104;
+      const topPadding = 12;
+      const bottomLimit = viewportHeight - composerSpace;
+      const currentSpan = targetRect.bottom - headerRect.top;
+      const idealTop = currentSpan < bottomLimit - topPadding
+        ? headerRect.top - topPadding
+        : targetRect.top - Math.max(topPadding, bottomLimit * 0.48);
+
+      window.scrollBy({ top: idealTop, behavior: "smooth" });
+    });
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-5 pt-6 pb-0">
-      <ListHeader list={list} />
+      <div ref={headerRef}>
+        <ListHeader list={list} />
+      </div>
 
       <LayoutGroup>
         <div className="flex flex-1 flex-col gap-2 pb-36">
+          <div ref={listStartRef} className="-mt-2 h-px" aria-hidden />
           <AnimatePresence initial={false}>
             <Reorder.Group
               axis="y"
-              values={items}
+              values={shoppingItems}
               onReorder={persistReorder}
               className="flex flex-col gap-2"
             >
-              {items.map((item) => (
+              {shoppingItems.map((item) => (
                 <ReorderableRow key={item.id} value={item}>
                   {editingId === item.id ? (
                     <motion.div
@@ -110,7 +137,7 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
         </div>
       </LayoutGroup>
 
-      {items.length > 0 && (
+      {shoppingItems.length > 0 && (
         <p className="px-1 text-sm text-muted-foreground">
           est. {formatSen(total)}
           {unpricedCount > 0 &&
@@ -118,17 +145,23 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
         </p>
       )}
 
-      {items.length > 0 && (
-        <button
-          type="button"
-          onClick={() => void begin()}
-          className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-20 mx-auto h-12 w-full max-w-sm rounded-full bg-shopping text-base font-bold text-white shadow-md transition-transform active:scale-[0.98] md:bottom-28"
-        >
-          Start Shopping 🛒
-        </button>
-      )}
-
-      <StickyAddBar label="New item" onAdd={(name) => addShoppingItem(list.id, name)} />
+      <div className="sticky bottom-0 z-30 -mx-5 mt-auto border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:rounded-t-2xl md:border md:shadow-sm">
+        {shoppingItems.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void begin()}
+            className="mx-auto mb-2 h-12 w-full max-w-sm rounded-full bg-shopping text-base font-bold text-white shadow-md transition-transform active:scale-[0.98]"
+          >
+            Start Shopping 🛒
+          </button>
+        )}
+        <StickyAddBar
+          label="New item"
+          sticky={false}
+          onFocus={focusComposerContext}
+          onAdd={(name) => addShoppingItem(list.id, name)}
+        />
+      </div>
 
       <PricePad
         open={padItem !== null}

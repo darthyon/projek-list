@@ -9,10 +9,13 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface StickyAddBarProps {
   label: string;
   onAdd: (name: string) => void | Promise<unknown>;
+  onFocus?: () => void;
+  sticky?: boolean;
   sections?: string[];
   selectedSection?: string;
   onSectionChange?: (section: string) => void;
@@ -21,6 +24,8 @@ interface StickyAddBarProps {
 export function StickyAddBar({
   label,
   onAdd,
+  onFocus,
+  sticky = true,
   sections = [],
   selectedSection = "",
   onSectionChange,
@@ -37,13 +42,20 @@ export function StickyAddBar({
   }
 
   return (
-    <div className="sticky bottom-0 z-20 -mx-5 mt-auto border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:rounded-t-2xl md:border md:shadow-sm">
+    <div
+      className={cn(
+        sticky
+          ? "sticky bottom-0 z-20 -mx-5 mt-auto border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:rounded-t-2xl md:border md:shadow-sm"
+          : "mt-0",
+      )}
+    >
       <div className="mx-auto flex w-full max-w-2xl items-center gap-2 rounded-full border border-border bg-card px-3 py-2 shadow-sm">
         <Plus className="size-5 shrink-0 text-muted-foreground" aria-hidden />
         <input
           ref={inputRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onFocus={onFocus}
           onKeyDown={(e) => {
             if (e.key === "Enter") commit(true);
             if (e.key === "Escape") {

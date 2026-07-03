@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AnimatePresence, LayoutGroup, Reorder, motion } from "motion/react";
 import { toast } from "sonner";
@@ -67,6 +67,12 @@ function SectionNameField({
   onCancel: () => void;
 }) {
   const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 50);
+    return () => window.clearTimeout(focusTimer);
+  }, []);
 
   function commit() {
     const name = value.trim();
@@ -75,13 +81,20 @@ function SectionNameField({
     setValue("");
   }
 
+  function commitFromBlur() {
+    const name = value.trim();
+    if (!name) return;
+    onAdd(name);
+    setValue("");
+  }
+
   return (
     <div className="rounded-xl border border-dashed border-border bg-card px-4 py-2">
       <Input
-        autoFocus
+        ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        onBlur={commit}
+        onBlur={commitFromBlur}
         onKeyDown={(e) => {
           if (e.key === "Enter") commit();
           if (e.key === "Escape") onCancel();
@@ -98,11 +111,22 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
   const items = useLiveQuery(() => getItems(list.id), [list.id]) as
     | ChecklistItem[]
     | undefined;
+  const headerRef = useRef<HTMLDivElement>(null);
+  const inboxRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef(new Map<string, HTMLDivElement>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [dueItem, setDueItem] = useState<ChecklistItem | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [selectedSection, setSelectedSection] = useState("");
+
+  useEffect(() => {
+    if (!addingSection) return;
+    const focusTimer = window.setTimeout(() => {
+      document.querySelector<HTMLInputElement>('input[aria-label="New section name"]')?.focus();
+    }, 180);
+    return () => window.clearTimeout(focusTimer);
+  }, [addingSection]);
 
   if (items === undefined) return null;
 
@@ -158,6 +182,29 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
     void reorderItems([...orderedOpenItems, ...done.map((item) => item.id)]);
   }
 
+  function focusComposerContext() {
+    window.requestAnimationFrame(() => {
+      const header = headerRef.current;
+      const target = selectedSectionName
+        ? sectionRefs.current.get(selectedSectionName)
+        : inboxRef.current;
+      if (!header || !target) return;
+
+      const headerRect = header.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const composerSpace = 104;
+      const topPadding = 12;
+      const bottomLimit = viewportHeight - composerSpace;
+      const currentSpan = targetRect.bottom - headerRect.top;
+      const idealTop = currentSpan < bottomLimit - topPadding
+        ? headerRect.top - topPadding
+        : targetRect.top - Math.max(topPadding, bottomLimit * 0.48);
+
+      window.scrollBy({ top: idealTop, behavior: "smooth" });
+    });
+  }
+
   function renderRow(item: ChecklistItem) {
     if (editingId === item.id) {
       return (
@@ -194,24 +241,36 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-5 pt-6 pb-0">
-      <ListHeader list={list}>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Sections</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="min-w-40">
-            <DropdownMenuItem onClick={() => setAddingSection(true)}>Add section</DropdownMenuItem>
-            {sections.length > 0 && <DropdownMenuSeparator />}
-            {sections.map((section) => (
-              <DropdownMenuItem
-                key={section}
-                variant="destructive"
-                onClick={() => void removeChecklistSection(list.id, section)}
-              >
-                Remove {section}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-      </ListHeader>
+      <div ref={headerRef}>
+        <ListHeader list={list}>
+          <DropdownMenuItem
+            onClick={() => {
+              window.setTimeout(() => setAddingSection(true), 0);
+            }}
+          >
+            Add section
+          </DropdownMenuItem>
+          {sections.length > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Sections</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="min-w-40">
+                  {sections.map((section) => (
+                    <DropdownMenuItem
+                      key={section}
+                      variant="destructive"
+                      onClick={() => void removeChecklistSection(list.id, section)}
+                    >
+                      Remove {section}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </>
+          )}
+        </ListHeader>
+      </div>
 
       {addingSection && (
         <SectionNameField
@@ -227,6 +286,7 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
 
       <LayoutGroup>
         <div className="flex flex-1 flex-col gap-2 pb-28">
+          <div ref={inboxRef} className="-mt-2 h-px" aria-hidden />
           <Reorder.Group
             axis="y"
             values={openSlots}
@@ -241,10 +301,17 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
                   dragListener={false}
                   className="list-none"
                 >
-                  <SectionHeader
-                    name={slot.section}
-                    onRemove={() => void removeChecklistSection(list.id, slot.section)}
-                  />
+                  <div
+                    ref={(node) => {
+                      if (node) sectionRefs.current.set(slot.section, node);
+                      else sectionRefs.current.delete(slot.section);
+                    }}
+                  >
+                    <SectionHeader
+                      name={slot.section}
+                      onRemove={() => void removeChecklistSection(list.id, slot.section)}
+                    />
+                  </div>
                 </Reorder.Item>
               ) : (
                 <ReorderableRow key={slot.id} value={slot}>
@@ -278,6 +345,7 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
 
       <StickyAddBar
         label="New item"
+        onFocus={focusComposerContext}
         sections={sections}
         selectedSection={selectedSectionName}
         onSectionChange={setSelectedSection}
