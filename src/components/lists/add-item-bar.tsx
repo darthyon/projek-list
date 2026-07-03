@@ -7,10 +7,12 @@ interface AddItemBarProps {
   placeholder: string;
   onAdd: (name: string) => void | Promise<unknown>;
   autoFocus?: boolean;
+  /** Override the default page-level sticky positioning (e.g. "static" inside Shop Mode). */
+  positionClassName?: string;
 }
 
 /** Sticky above the nav — rapid entry: type, Enter, keep typing. */
-export function AddItemBar({ placeholder, onAdd, autoFocus }: AddItemBarProps) {
+export function AddItemBar({ placeholder, onAdd, autoFocus, positionClassName }: AddItemBarProps) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -23,7 +25,12 @@ export function AddItemBar({ placeholder, onAdd, autoFocus }: AddItemBarProps) {
   }
 
   return (
-    <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 md:bottom-4">
+    <div
+      className={
+        positionClassName ??
+        "sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 md:bottom-4"
+      }
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();

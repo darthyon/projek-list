@@ -5,10 +5,15 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChecklistView } from "@/components/lists/checklist/checklist-view";
+import { CompletedView } from "@/components/lists/shopping/completed-view";
+import { ShoppingView } from "@/components/lists/shopping/shopping-view";
+import { ShopMode } from "@/components/shop-mode/shop-mode";
 import { getList } from "@/lib/db";
 
 function ListView() {
-  const id = useSearchParams().get("id");
+  const params = useSearchParams();
+  const id = params.get("id");
+  const shopMode = params.get("mode") === "shop";
   const list = useLiveQuery(() => (id ? getList(id) : undefined), [id]);
 
   if (!list) {
@@ -26,20 +31,9 @@ function ListView() {
 
   if (list.type === "checklist") return <ChecklistView list={list} />;
 
-  return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-5 pt-6">
-      <header className="flex items-center gap-3">
-        <span className="text-3xl" aria-hidden>
-          {list.emoji}
-        </span>
-        <h1 className="text-2xl font-bold">{list.name}</h1>
-      </header>
-      <p className="text-sm text-muted-foreground">Shopping view arrives in Phase 4.</p>
-      <Link href="/" className="text-sm underline underline-offset-4">
-        Back to Home
-      </Link>
-    </main>
-  );
+  if (list.completedAt !== null) return <CompletedView list={list} />;
+  if (shopMode) return <ShopMode list={list} />;
+  return <ShoppingView list={list} />;
 }
 
 export default function ListPage() {

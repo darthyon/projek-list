@@ -126,6 +126,20 @@
   --accent-shopping: #f5a83c;
 }
 
+/* Perforated receipt bottom edge — see DESIGN.md "The receipt" */
+.receipt-edge {
+  mask-image:
+    linear-gradient(black, black),
+    conic-gradient(from -45deg at 50% 100%, transparent 90deg, black 90deg);
+  mask-size:
+    100% calc(100% - 8px),
+    16px 8px;
+  mask-position:
+    top,
+    bottom;
+  mask-repeat: no-repeat, repeat-x;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
