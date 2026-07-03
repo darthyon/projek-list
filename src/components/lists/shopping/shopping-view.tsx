@@ -22,6 +22,7 @@ import {
 } from "@/lib/db";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { formatSen } from "@/lib/money";
+import { findInsertIndex } from "@/lib/reorder";
 import { shoppingTotals, type ShoppingItem, type ShoppingList } from "@/lib/types/list";
 
 export function ShoppingView({ list }: { list: ShoppingList }) {
@@ -35,6 +36,8 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [padItem, setPadItem] = useState<ShoppingItem | null>(null);
+  const [composerFocused, setComposerFocused] = useState(false);
+  const lastReorderY = useRef(Number.NEGATIVE_INFINITY);
   const keyboardInset = useKeyboardInset();
   const [draftShoppingItems, setDraftShoppingItems] = useState<ShoppingItem[] | null>(null);
 
@@ -70,27 +73,26 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
     void reorderItems(nextItems.map((item) => item.id));
   }
 
-  function reorderShoppingItem(draggedId: string, x: number, y: number) {
+  function reorderShoppingItem(draggedId: string, _x: number, y: number) {
     const currentItems = shoppingItemsRef.current;
-    const dragged = currentItems.find((item) => item.id === draggedId);
-    if (!dragged) return;
-
-    const targetEl = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-reorder-id]");
-    const targetId = targetEl?.dataset.reorderId;
-    if (!targetEl || !targetId || targetId === draggedId) return;
+    const fromIndex = currentItems.findIndex((item) => item.id === draggedId);
+    if (fromIndex === -1) return;
 
     const nextItems = currentItems.filter((item) => item.id !== draggedId);
-    const targetIndex = nextItems.findIndex((item) => item.id === targetId);
-    if (targetIndex === -1) return;
+    const insertIndex = findInsertIndex(nextItems.map((item) => item.id), y);
+    if (insertIndex === fromIndex) return;
+    // Rows still FLIP-animating report transient rects; require real finger
+    // travel since the last splice so a settling row can't bounce the order.
+    if (Math.abs(y - lastReorderY.current) < 6) return;
+    lastReorderY.current = y;
 
-    const targetRect = targetEl.getBoundingClientRect();
-    const insertIndex = targetIndex + (y > targetRect.top + targetRect.height / 2 ? 1 : 0);
-    nextItems.splice(insertIndex, 0, dragged);
+    nextItems.splice(insertIndex, 0, currentItems[fromIndex]);
     shoppingItemsRef.current = nextItems;
     setDraftShoppingItems(nextItems);
   }
 
   function startShoppingReorder() {
+    lastReorderY.current = Number.NEGATIVE_INFINITY;
     setDraftShoppingItems(shoppingItemsRef.current);
   }
 
@@ -109,7 +111,9 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
       const headerRect = header.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      const composerSpace = shoppingItems.length > 0 ? 160 : 104;
+      // Start Shopping hides while the composer is focused, so only the
+      // composer row needs clearance.
+      const composerSpace = 104;
       const topPadding = 12;
       const bottomLimit = viewportHeight - composerSpace;
       const currentSpan = targetRect.bottom - headerRect.top;
@@ -189,7 +193,7 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
         style={{ bottom: keyboardInset }}
         className="fixed right-0 left-0 z-30 border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:left-20 md:rounded-t-2xl md:border md:shadow-sm"
       >
-        {shoppingItems.length > 0 && (
+        {shoppingItems.length > 0 && !composerFocused && (
           <button
             type="button"
             onClick={() => void begin()}
@@ -201,7 +205,11 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
         <StickyAddBar
           label="New item"
           sticky={false}
-          onFocus={focusComposerContext}
+          onFocus={() => {
+            setComposerFocused(true);
+            focusComposerContext();
+          }}
+          onBlur={() => setComposerFocused(false)}
           onAdd={(name) => addShoppingItem(list.id, name)}
         />
       </div>

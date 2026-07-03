@@ -35,6 +35,7 @@ import {
   toggleChecked,
   updateChecklistItem,
 } from "@/lib/db";
+import { findInsertIndex } from "@/lib/reorder";
 import type { ChecklistItem, ChecklistList } from "@/lib/types/list";
 
 type ChecklistSlot =
@@ -121,6 +122,7 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
   const [addingSection, setAddingSection] = useState(false);
   const [selectedSection, setSelectedSection] = useState("");
   const [draftOpenSlots, setDraftOpenSlots] = useState<ChecklistSlot[] | null>(null);
+  const lastReorderY = useRef(Number.NEGATIVE_INFINITY);
 
   useEffect(() => {
     if (!addingSection) return;
@@ -189,29 +191,27 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
     void reorderItems([...orderedOpenItems, ...done.map((item) => item.id)]);
   }
 
-  function reorderOpenSlot(draggedId: string, x: number, y: number) {
+  function reorderOpenSlot(draggedId: string, _x: number, y: number) {
     const slots = openSlotsRef.current;
-    const dragged = slots.find((slot) => slot.id === draggedId);
+    const fromIndex = slots.findIndex((slot) => slot.id === draggedId);
+    const dragged = slots[fromIndex];
     if (!dragged || dragged.type !== "item") return;
 
-    const targetEl = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-reorder-id]");
-    const targetId = targetEl?.dataset.reorderId;
-    if (!targetEl || !targetId || targetId === draggedId) return;
-
     const nextSlots = slots.filter((slot) => slot.id !== draggedId);
-    const targetIndex = nextSlots.findIndex((slot) => slot.id === targetId);
-    if (targetIndex === -1) return;
+    const insertIndex = findInsertIndex(nextSlots.map((slot) => slot.id), y);
+    if (insertIndex === fromIndex) return;
+    // Rows still FLIP-animating report transient rects; require real finger
+    // travel since the last splice so a settling row can't bounce the order.
+    if (Math.abs(y - lastReorderY.current) < 6) return;
+    lastReorderY.current = y;
 
-    const targetSlot = nextSlots[targetIndex];
-    const targetRect = targetEl.getBoundingClientRect();
-    const insertAfter = targetSlot.type === "header" || y > targetRect.top + targetRect.height / 2;
-    const insertIndex = targetIndex + (insertAfter ? 1 : 0);
     nextSlots.splice(insertIndex, 0, dragged);
     openSlotsRef.current = nextSlots;
     setDraftOpenSlots(nextSlots);
   }
 
   function startOpenSlotReorder() {
+    lastReorderY.current = Number.NEGATIVE_INFINITY;
     setDraftOpenSlots(openSlotsRef.current);
   }
 

@@ -16,6 +16,7 @@ interface StickyAddBarProps {
   label: string;
   onAdd: (name: string) => void | Promise<unknown>;
   onFocus?: () => void;
+  onBlur?: () => void;
   sticky?: boolean;
   sections?: string[];
   selectedSection?: string;
@@ -26,6 +27,7 @@ export function StickyAddBar({
   label,
   onAdd,
   onFocus,
+  onBlur,
   sticky = true,
   sections = [],
   selectedSection = "",
@@ -66,7 +68,10 @@ export function StickyAddBar({
               inputRef.current?.blur();
             }
           }}
-          onBlur={() => commit(false)}
+          onBlur={() => {
+            commit(false);
+            onBlur?.();
+          }}
           placeholder={label}
           aria-label={label}
           enterKeyHint="next"

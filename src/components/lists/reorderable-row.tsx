@@ -11,7 +11,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { motion } from "motion/react";
+import { animate, motion, useMotionValue } from "motion/react";
 
 interface ReorderableRowProps {
   id: string;
@@ -42,12 +42,56 @@ export function ReorderableRow({
   const activePointerId = useRef<number | null>(null);
   const activeElement = useRef<Element | null>(null);
   const isReordering = useRef(false);
+  const dragY = useMotionValue(0);
+  const lastPoint = useRef({ x: 0, y: 0 });
+  const grabOffsetY = useRef(0);
+  const followRaf = useRef<number | null>(null);
 
   const reorderStyle: CSSProperties = { touchAction: armed ? "none" : "pan-y" };
 
   function clearTimer() {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
+  }
+
+  function stopFollowLoop() {
+    if (followRaf.current !== null) cancelAnimationFrame(followRaf.current);
+    followRaf.current = null;
+  }
+
+  // Keeps the row pinned under the finger every frame: the row's slot can
+  // shift beneath it (splices, sibling FLIP animations, auto-scroll), so the
+  // offset is re-derived from the live rect rather than accumulated deltas.
+  // Also scrolls the page when the finger nears the viewport edges — native
+  // scrolling is suppressed while a drag is armed.
+  function startFollowLoop() {
+    const step = () => {
+      if (!isReordering.current) {
+        followRaf.current = null;
+        return;
+      }
+      const { x, y } = lastPoint.current;
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const scrollStep =
+        y < 96
+          ? Math.max(-16, (y - 96) / 5)
+          : y > viewportHeight - 120
+            ? Math.min(16, (y - (viewportHeight - 120)) / 5)
+            : 0;
+      if (scrollStep !== 0) {
+        window.scrollBy(0, scrollStep);
+        onLongPressMove(id, x, y);
+      }
+      const element = activeElement.current;
+      if (element) {
+        // rect.top includes the current dragY transform, so nudge by the error.
+        const rect = element.getBoundingClientRect();
+        dragY.set(dragY.get() + (y - grabOffsetY.current - rect.top));
+      }
+      followRaf.current = requestAnimationFrame(step);
+    };
+    stopFollowLoop();
+    followRaf.current = requestAnimationFrame(step);
   }
 
   function clearGestureSoon() {
@@ -64,8 +108,12 @@ export function ReorderableRow({
   function finishGesture() {
     const wasReordering = isReordering.current;
     clearTimer();
+    stopFollowLoop();
     origin.current = null;
-    if (wasReordering) onLongPressEnd?.(id);
+    if (wasReordering) {
+      onLongPressEnd?.(id);
+      void animate(dragY, 0, { duration: 0.22, ease: [0.22, 1, 0.36, 1] });
+    }
     clearGestureSoon();
   }
 
@@ -75,6 +123,13 @@ export function ReorderableRow({
       target.closest("button,input,textarea,select,a,[contenteditable='true']") !== null
     );
   }
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+      if (followRaf.current !== null) cancelAnimationFrame(followRaf.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!armed) return;
@@ -102,9 +157,11 @@ export function ReorderableRow({
   return (
     <ReorderGestureContext.Provider value={suppressTap}>
       <motion.div
-        layout
+        // While dragged, the row is positioned by dragY alone — FLIP would
+        // fight the follow loop. Siblings keep animating into place.
+        layout={!armed}
         data-reorder-id={id}
-        style={reorderStyle}
+        style={{ ...reorderStyle, y: dragY }}
         onPointerDown={(event: PointerEvent) => {
           if (isInteractiveTarget(event.target)) return;
           activeElement.current = event.currentTarget;
@@ -128,6 +185,11 @@ export function ReorderableRow({
                 // The pointer may already be released/cancelled on mobile browsers.
               }
             }
+            if (element && origin.current) {
+              grabOffsetY.current = origin.current.y - element.getBoundingClientRect().top;
+              lastPoint.current = { x: origin.current.x, y: origin.current.y };
+              startFollowLoop();
+            }
             navigator.vibrate?.(8);
             onLongPressStart?.(id);
           }, 300);
@@ -135,6 +197,7 @@ export function ReorderableRow({
         onPointerMove={(event: PointerEvent) => {
           if (isReordering.current) {
             event.preventDefault();
+            lastPoint.current = { x: event.clientX, y: event.clientY };
             onLongPressMove(id, event.clientX, event.clientY);
             return;
           }
