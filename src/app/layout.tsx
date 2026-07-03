@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, IBM_Plex_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/shell/app-shell";
@@ -19,6 +19,18 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Projek List",
   description: "The right list for the job.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Projek List",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f2ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1815" },
+  ],
 };
 
 export default function RootLayout({

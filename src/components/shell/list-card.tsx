@@ -38,10 +38,11 @@ export function ListCard({ list }: { list: List }) {
         subtitle = `Done · ${formatSen(total)}`;
       } else {
         const { total, unpricedCount } = shoppingTotals(shoppingItems);
+        const count = `${items.length} item${items.length === 1 ? "" : "s"}`;
         subtitle =
           unpricedCount > 0
-            ? `${items.length} items · est ${formatSen(total)} + ${unpricedCount} no price`
-            : `${items.length} items · est ${formatSen(total)}`;
+            ? `${count} · est ${formatSen(total)} + ${unpricedCount} no price`
+            : `${count} · est ${formatSen(total)}`;
       }
     }
   }
