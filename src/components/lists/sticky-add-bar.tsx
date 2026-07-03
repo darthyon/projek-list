@@ -45,7 +45,7 @@ export function StickyAddBar({
     <div
       className={cn(
         sticky
-          ? "sticky bottom-0 z-20 -mx-5 mt-auto border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:rounded-t-2xl md:border md:shadow-sm"
+          ? "sticky bottom-0 z-20 -mx-5 border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:rounded-t-2xl md:border md:shadow-sm"
           : "mt-0",
       )}
     >
