@@ -20,6 +20,7 @@ import {
   startShopping,
   updateShoppingItem,
 } from "@/lib/db";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { formatSen } from "@/lib/money";
 import { shoppingTotals, type ShoppingItem, type ShoppingList } from "@/lib/types/list";
 
@@ -34,6 +35,7 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [padItem, setPadItem] = useState<ShoppingItem | null>(null);
+  const keyboardInset = useKeyboardInset();
   const [draftShoppingItems, setDraftShoppingItems] = useState<ShoppingItem[] | null>(null);
 
   const shoppingItems = items ?? [];
@@ -183,7 +185,10 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
         </p>
       )}
 
-      <div className="fixed right-0 bottom-0 left-0 z-30 border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:left-20 md:rounded-t-2xl md:border md:shadow-sm">
+      <div
+        style={{ bottom: keyboardInset }}
+        className="fixed right-0 left-0 z-30 border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:left-20 md:rounded-t-2xl md:border md:shadow-sm"
+      >
         {shoppingItems.length > 0 && (
           <button
             type="button"

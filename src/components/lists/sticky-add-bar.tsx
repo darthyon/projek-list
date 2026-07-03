@@ -9,6 +9,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { cn } from "@/lib/utils";
 
 interface StickyAddBarProps {
@@ -32,6 +33,7 @@ export function StickyAddBar({
 }: StickyAddBarProps) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const keyboardInset = useKeyboardInset();
   const sectionLabel = selectedSection || "Inbox";
 
   function commit(keepFocus: boolean) {
@@ -43,6 +45,7 @@ export function StickyAddBar({
 
   return (
     <div
+      style={sticky ? { bottom: keyboardInset } : undefined}
       className={cn(
         sticky
           ? "fixed right-0 bottom-0 left-0 z-30 border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:left-20 md:rounded-t-2xl md:border md:shadow-sm"
