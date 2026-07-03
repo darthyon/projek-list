@@ -193,15 +193,6 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
         style={{ bottom: keyboardInset }}
         className="fixed right-0 left-0 z-30 border-t border-border/80 bg-background/95 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur md:left-20 md:rounded-t-2xl md:border md:shadow-sm"
       >
-        {shoppingItems.length > 0 && !composerFocused && (
-          <button
-            type="button"
-            onClick={() => void begin()}
-            className="mx-auto mb-2 h-12 w-full max-w-sm rounded-full bg-shopping text-base font-bold text-white shadow-md transition-transform active:scale-[0.98]"
-          >
-            Start Shopping 🛒
-          </button>
-        )}
         <StickyAddBar
           label="New item"
           sticky={false}
@@ -212,6 +203,15 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
           onBlur={() => setComposerFocused(false)}
           onAdd={(name) => addShoppingItem(list.id, name)}
         />
+        {shoppingItems.length > 0 && !composerFocused && (
+          <button
+            type="button"
+            onClick={() => void begin()}
+            className="mx-auto mt-2 block h-12 w-full max-w-sm rounded-full bg-shopping text-base font-bold text-white shadow-md transition-transform active:scale-[0.98]"
+          >
+            Start Shopping 🛒
+          </button>
+        )}
       </div>
 
       <PricePad

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, type KeyboardEvent, type PointerEvent } from "react";
-import { motion, useMotionValue, useTransform } from "motion/react";
+import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from "react";
+import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { Trash2 } from "lucide-react";
-import { useReorderTapSuppression } from "@/components/lists/reorderable-row";
+import { useReorderArmed, useReorderTapSuppression } from "@/components/lists/reorderable-row";
 import { cn } from "@/lib/utils";
 
 interface SwipeRowProps {
@@ -47,6 +47,13 @@ export function SwipeRow({
   const pointerOrigin = useRef<{ x: number; y: number } | null>(null);
   const handledPointerTap = useRef(false);
   const reorderTapSuppressedRef = useReorderTapSuppression();
+  const reorderArmed = useReorderArmed();
+
+  // Long-press reorder owns the pointer: lock the swipe axis and snap any
+  // partial slide home so the delete underlay can't peek mid-drag.
+  useEffect(() => {
+    if (reorderArmed && x.get() !== 0) void animate(x, 0, { duration: 0.12 });
+  }, [reorderArmed, x]);
 
   return (
     <motion.div
@@ -69,9 +76,9 @@ export function SwipeRow({
       </motion.div>
       <motion.div
         style={{ x }}
-        drag="x"
+        drag={reorderArmed ? false : "x"}
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={{ left: 0.4, right: 0.05 }}
+        dragElastic={reorderArmed ? 0 : { left: 0.4, right: 0.05 }}
         dragSnapToOrigin
         onPointerDown={(e) => {
           pointerOrigin.current = { x: e.clientX, y: e.clientY };
@@ -105,7 +112,9 @@ export function SwipeRow({
           setTimeout(() => {
             dragging.current = false;
           }, 0);
-          if (info.offset.x < -90) onDelete();
+          // offset tracks the pointer, not the clamped row — never delete
+          // off the back of a reorder drag.
+          if (!reorderArmed && info.offset.x < -90) onDelete();
         }}
         onClick={() => {
           if (reorderTapSuppressedRef?.current) {

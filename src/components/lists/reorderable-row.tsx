@@ -21,10 +21,20 @@ interface ReorderableRowProps {
   onLongPressEnd?: (id: string) => void;
 }
 
-const ReorderGestureContext = createContext<RefObject<boolean> | null>(null);
+interface ReorderGestureContextValue {
+  suppressTap: RefObject<boolean>;
+  armed: boolean;
+}
+
+const ReorderGestureContext = createContext<ReorderGestureContextValue | null>(null);
 
 export function useReorderTapSuppression() {
-  return useContext(ReorderGestureContext);
+  return useContext(ReorderGestureContext)?.suppressTap ?? null;
+}
+
+/** True while this row is long-press armed for reorder — gates competing gestures. */
+export function useReorderArmed() {
+  return useContext(ReorderGestureContext)?.armed ?? false;
 }
 
 export function ReorderableRow({
@@ -155,7 +165,7 @@ export function ReorderableRow({
   });
 
   return (
-    <ReorderGestureContext.Provider value={suppressTap}>
+    <ReorderGestureContext.Provider value={{ suppressTap, armed }}>
       <motion.div
         // While dragged, the row is positioned by dragY alone — FLIP would
         // fight the follow loop. Siblings keep animating into place.
