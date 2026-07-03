@@ -43,5 +43,8 @@ src/
 - UX copy follows voice rules in DESIGN.md — jokes only on low-stakes surfaces, money copy always straight.
 - IDs are UUIDs (future sync insurance).
 
+# Git workflow
+Work on `playground` (Vercel preview deploys). `main` = production (auto-deploys to projek-list.vercel.app) — merge to main only when explicitly confirmed. Run /deploy security check before any push.
+
 # Team
 Solo (design engineer), Claude Code as build partner.
