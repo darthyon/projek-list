@@ -122,6 +122,29 @@ export async function startShopping(id: string): Promise<void> {
   await db.lists.put({ ...list, estTotalAtStart: est, completedAt: null });
 }
 
+export async function addChecklistSection(id: string, name: string): Promise<void> {
+  const list = await db.lists.get(id);
+  if (!list || list.type !== "checklist") return;
+  const trimmed = name.trim();
+  if (!trimmed || list.sections?.includes(trimmed)) return;
+  await db.lists.put({ ...list, sections: [...(list.sections ?? []), trimmed] });
+}
+
+/** Removes the section; its items become unsectioned. */
+export async function removeChecklistSection(id: string, name: string): Promise<void> {
+  const list = await db.lists.get(id);
+  if (!list || list.type !== "checklist") return;
+  await db.transaction("rw", db.lists, db.items, async () => {
+    await db.items
+      .where("listId")
+      .equals(id)
+      .modify((item) => {
+        if ("section" in item && item.section === name) delete item.section;
+      });
+    await db.lists.put({ ...list, sections: (list.sections ?? []).filter((s) => s !== name) });
+  });
+}
+
 export async function completeShopping(id: string): Promise<void> {
   const list = await db.lists.get(id);
   if (!list || list.type !== "shopping") return;

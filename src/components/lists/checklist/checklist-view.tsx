@@ -1,26 +1,92 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatedCheck } from "@/components/ui/animated-check";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
-import { AddItemBar } from "@/components/lists/add-item-bar";
+import { InlineAddRow } from "@/components/lists/inline-add-row";
 import { ListHeader } from "@/components/lists/list-header";
 import { CheckRow } from "./check-row";
 import { DueDateDialog } from "./due-date-dialog";
 import {
   addChecklistItem,
+  addChecklistSection,
   deleteItem,
   getItems,
+  removeChecklistSection,
   restoreItem,
   toggleChecked,
   updateChecklistItem,
 } from "@/lib/db";
 import type { ChecklistItem, ChecklistList } from "@/lib/types/list";
 
-const GHOSTS = ["Type first thing…", "Apa nak buat?", "Start small. One thing."];
+function SectionHeader({ name, onRemove }: { name: string; onRemove: () => void }) {
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <motion.p
+          layout
+          className="mt-3 px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase select-none"
+        >
+          {name}
+        </motion.p>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={onRemove}>Remove section</ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
+
+function NewSectionRow({ onAdd }: { onAdd: (name: string) => void }) {
+  const [active, setActive] = useState(false);
+  const [value, setValue] = useState("");
+
+  if (!active) {
+    return (
+      <button
+        type="button"
+        onClick={() => setActive(true)}
+        className="mt-1 flex items-center gap-2 px-1 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase transition-colors hover:text-foreground"
+      >
+        <Plus className="size-3.5" aria-hidden />
+        New section
+      </button>
+    );
+  }
+  return (
+    <input
+      autoFocus
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && value.trim()) {
+          onAdd(value.trim());
+          setValue("");
+          setActive(false);
+        }
+        if (e.key === "Escape") setActive(false);
+      }}
+      onBlur={() => {
+        if (value.trim()) onAdd(value.trim());
+        setValue("");
+        setActive(false);
+      }}
+      placeholder="Section name"
+      aria-label="New section name"
+      className="mt-1 w-40 bg-transparent px-1 text-xs font-medium tracking-wide uppercase outline-none placeholder:normal-case"
+    />
+  );
+}
 
 export function ChecklistView({ list }: { list: ChecklistList }) {
   const items = useLiveQuery(() => getItems(list.id), [list.id]) as
@@ -29,16 +95,15 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [dueItem, setDueItem] = useState<ChecklistItem | null>(null);
-  const ghost = useMemo(() => {
-    const hash = [...list.id].reduce((a, c) => a + c.charCodeAt(0), 0);
-    return GHOSTS[hash % GHOSTS.length];
-  }, [list.id]);
 
   if (items === undefined) return null;
 
+  const sections = list.sections ?? [];
   const open = items.filter((i) => !i.checked);
   const done = items.filter((i) => i.checked);
   const allDone = items.length > 0 && open.length === 0;
+  const openIn = (section?: string) =>
+    open.filter((i) => (section === undefined ? !i.section || !sections.includes(i.section) : i.section === section));
 
   function toggle(item: ChecklistItem) {
     navigator.vibrate?.(10);
@@ -93,12 +158,29 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-5 pt-6">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-5 pt-6 pb-10">
       <ListHeader list={list} />
 
       <LayoutGroup>
         <div className="flex flex-1 flex-col gap-2">
-          <AnimatePresence initial={false}>{open.map(renderRow)}</AnimatePresence>
+          <AnimatePresence initial={false}>{openIn(undefined).map(renderRow)}</AnimatePresence>
+          <InlineAddRow label="New item" onAdd={(name) => addChecklistItem(list.id, name)} />
+
+          {sections.map((section) => (
+            <div key={section} className="flex flex-col gap-2">
+              <SectionHeader
+                name={section}
+                onRemove={() => void removeChecklistSection(list.id, section)}
+              />
+              <AnimatePresence initial={false}>{openIn(section).map(renderRow)}</AnimatePresence>
+              <InlineAddRow
+                label="New item"
+                onAdd={(name) => addChecklistItem(list.id, name, { section })}
+              />
+            </div>
+          ))}
+
+          <NewSectionRow onAdd={(name) => void addChecklistSection(list.id, name)} />
 
           {allDone && (
             <motion.div
@@ -121,12 +203,6 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
           <AnimatePresence initial={false}>{done.map(renderRow)}</AnimatePresence>
         </div>
       </LayoutGroup>
-
-      <AddItemBar
-        placeholder={ghost}
-        onAdd={(name) => addChecklistItem(list.id, name)}
-        autoFocus={items.length === 0}
-      />
 
       <DueDateDialog item={dueItem} onClose={() => setDueItem(null)} />
     </div>

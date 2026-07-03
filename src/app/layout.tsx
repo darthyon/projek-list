@@ -31,6 +31,9 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)", color: "#f6f2ea" },
     { media: "(prefers-color-scheme: dark)", color: "#1a1815" },
   ],
+  // Android/Chrome: layout viewport shrinks with the keyboard, so bottom
+  // sheets stay visible. iOS is handled per-sheet via useKeyboardInset.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

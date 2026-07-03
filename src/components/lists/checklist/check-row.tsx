@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef } from "react";
-import { motion } from "motion/react";
 import { Check } from "lucide-react";
 import {
   ContextMenu,
@@ -9,6 +7,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { SwipeRow } from "@/components/ui/swipe-row";
 import { useLongPress } from "@/hooks/use-long-press";
 import { formatDue, isOverdue } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -25,46 +24,26 @@ interface CheckRowProps {
 /** Delight budget #1 — check-sink. Parent's layout group animates the move below the divider. */
 export function CheckRow({ item, onToggle, onDelete, onStartEdit, onSetDue }: CheckRowProps) {
   const { fired, handlers } = useLongPress();
-  const dragging = useRef(false);
   const overdue = item.dueAt !== undefined && !item.checked && isOverdue(item.dueAt);
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <motion.div
-          layout
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          transition={{ layout: { type: "spring", stiffness: 500, damping: 40 } }}
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={{ left: 0.4, right: 0.05 }}
-          dragSnapToOrigin
-          onDragStart={() => {
-            dragging.current = true;
-          }}
-          onDragEnd={(_, info) => {
-            setTimeout(() => {
-              dragging.current = false;
-            }, 0);
-            if (info.offset.x < -90) onDelete();
-          }}
-          onClick={() => {
-            if (!fired.current && !dragging.current) onToggle();
-          }}
-          {...handlers}
+        <SwipeRow
+          onDelete={onDelete}
+          onClick={onToggle}
+          clickSuppressed={() => fired.current}
+          longPressHandlers={handlers}
           role="checkbox"
-          aria-checked={item.checked}
-          aria-label={item.name}
-          tabIndex={0}
+          ariaChecked={item.checked}
+          ariaLabel={item.name}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               onToggle();
             }
           }}
-          className="flex cursor-pointer touch-pan-y items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 select-none focus-visible:outline-2 focus-visible:outline-ring"
+          innerClassName="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 focus-visible:outline-2 focus-visible:outline-ring"
         >
           <span
             aria-hidden
@@ -100,7 +79,7 @@ export function CheckRow({ item, onToggle, onDelete, onStartEdit, onSetDue }: Ch
               {formatDue(item.dueAt)}
             </span>
           )}
-        </motion.div>
+        </SwipeRow>
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onClick={onStartEdit}>Edit</ContextMenuItem>

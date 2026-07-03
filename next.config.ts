@@ -12,6 +12,9 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   output: "export",
+  // Serwist adds a webpack config; dev runs Turbopack (SW disabled in dev),
+  // prod builds run `next build --webpack`. This silences the mismatch error.
+  turbopack: {},
 };
 
 export default withSerwist(nextConfig);

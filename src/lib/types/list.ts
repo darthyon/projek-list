@@ -20,6 +20,8 @@ interface BaseList {
 
 export interface ChecklistList extends BaseList {
   type: "checklist";
+  /** Ordered section names — optional grouping, checklist only. */
+  sections?: string[];
 }
 
 export interface ShoppingList extends BaseList {
@@ -44,6 +46,8 @@ interface BaseItem {
 export interface ChecklistItem extends BaseItem {
   note?: string;
   dueAt?: number;
+  /** Section name — must match an entry in the list's `sections`. */
+  section?: string;
 }
 
 export interface ShoppingItem extends BaseItem {

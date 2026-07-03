@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { createList } from "@/lib/db";
 import { suggestEmoji } from "@/lib/emoji";
@@ -26,6 +27,7 @@ const PITCHES: Record<ListType, string> = {
 export function CreateSheet({ open, onOpenChange, presetType }: CreateSheetProps) {
   const router = useRouter();
   const desktop = useMediaQuery("(min-width: 768px)");
+  const keyboardInset = useKeyboardInset();
   const [type, setType] = useState<ListType>(presetType);
   const [name, setName] = useState("");
 
@@ -113,7 +115,11 @@ export function CreateSheet({ open, onOpenChange, presetType }: CreateSheetProps
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <SheetContent
+        side="bottom"
+        style={{ bottom: keyboardInset }}
+        className="rounded-t-2xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
         <SheetHeader className="px-0">
           <SheetTitle>New list</SheetTitle>
         </SheetHeader>

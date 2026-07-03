@@ -1,13 +1,12 @@
 "use client";
 
-import { useRef } from "react";
-import { motion } from "motion/react";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { SwipeRow } from "@/components/ui/swipe-row";
 import { QtyStepper } from "./qty-stepper";
 import { useLongPress } from "@/hooks/use-long-press";
 import { formatSen } from "@/lib/money";
@@ -25,32 +24,15 @@ interface ShoppingRowProps {
 /** Plan-view row: name · qty stepper · price chip. Price is never required. */
 export function ShoppingRow({ item, onQty, onPrice, onDelete, onStartEdit }: ShoppingRowProps) {
   const { handlers } = useLongPress();
-  const dragging = useRef(false);
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <motion.div
-          layout
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          transition={{ layout: { type: "spring", stiffness: 500, damping: 40 } }}
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={{ left: 0.4, right: 0.05 }}
-          dragSnapToOrigin
-          onDragStart={() => {
-            dragging.current = true;
-          }}
-          onDragEnd={(_, info) => {
-            setTimeout(() => {
-              dragging.current = false;
-            }, 0);
-            if (info.offset.x < -90) onDelete();
-          }}
-          {...handlers}
-          className="flex touch-pan-y items-center gap-2 rounded-xl border border-border bg-card py-2 pr-2 pl-4 select-none"
+        <SwipeRow
+          onDelete={onDelete}
+          longPressHandlers={handlers}
+          ariaLabel={item.name}
+          innerClassName="flex items-center gap-2 rounded-xl border border-border bg-card py-2 pr-2 pl-4"
         >
           <span className="min-w-0 flex-1 leading-snug break-words line-clamp-2">{item.name}</span>
           <QtyStepper qty={item.qty} unit={item.unit} onChange={onQty} />
@@ -58,7 +40,7 @@ export function ShoppingRow({ item, onQty, onPrice, onDelete, onStartEdit }: Sho
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (!dragging.current) onPrice();
+              onPrice();
             }}
             onPointerDown={(e) => e.stopPropagation()}
             aria-label={
@@ -75,7 +57,7 @@ export function ShoppingRow({ item, onQty, onPrice, onDelete, onStartEdit }: Sho
           >
             {item.price === undefined ? "RM —" : formatSen(item.price)}
           </button>
-        </motion.div>
+        </SwipeRow>
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onClick={onStartEdit}>Edit</ContextMenuItem>

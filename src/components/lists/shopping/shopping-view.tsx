@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { AddItemBar } from "@/components/lists/add-item-bar";
+import { InlineAddRow } from "@/components/lists/inline-add-row";
 import { ListHeader } from "@/components/lists/list-header";
 import { PricePad } from "@/components/shop-mode/price-pad";
 import { ShoppingRow } from "./shopping-row";
@@ -21,12 +21,6 @@ import {
 import { formatSen } from "@/lib/money";
 import { shoppingTotals, type ShoppingItem, type ShoppingList } from "@/lib/types/list";
 
-const GHOSTS = [
-  "Chicken, milk, that thing you always forget",
-  "Apa nak beli?",
-  "Start the list. Wallet ready or not.",
-];
-
 export function ShoppingView({ list }: { list: ShoppingList }) {
   const router = useRouter();
   const items = useLiveQuery(() => getItems(list.id), [list.id]) as
@@ -35,10 +29,6 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [padItem, setPadItem] = useState<ShoppingItem | null>(null);
-  const ghost = useMemo(() => {
-    const hash = [...list.id].reduce((a, c) => a + c.charCodeAt(0), 0);
-    return GHOSTS[hash % GHOSTS.length];
-  }, [list.id]);
 
   if (items === undefined) return null;
 
@@ -104,6 +94,7 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
               ),
             )}
           </AnimatePresence>
+          <InlineAddRow label="New item" onAdd={(name) => addShoppingItem(list.id, name)} />
         </div>
       </LayoutGroup>
 
@@ -114,12 +105,6 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
             ` · ${unpricedCount} item${unpricedCount === 1 ? "" : "s"} no price yet`}
         </p>
       )}
-
-      <AddItemBar
-        placeholder={ghost}
-        onAdd={(name) => addShoppingItem(list.id, name)}
-        autoFocus={items.length === 0}
-      />
 
       {items.length > 0 && (
         <button

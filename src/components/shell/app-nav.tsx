@@ -47,13 +47,16 @@ function NewButton({ onNew }: { onNew: () => void }) {
   );
 }
 
-export function AppNav({ onNew }: { onNew: () => void }) {
+export function AppNav({ onNew, hideMobile }: { onNew: () => void; hideMobile?: boolean }) {
   return (
     <>
-      {/* Mobile: bottom bar */}
+      {/* Mobile: bottom bar — hidden in list focus mode */}
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden",
+          hideMobile && "hidden",
+        )}
       >
         <NavLink href="/" label="Home" icon={House} />
         <div className="-mt-4">

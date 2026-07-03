@@ -1,7 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { usePathname } from "next/navigation";
 import { MotionConfig } from "motion/react";
+import { cn } from "@/lib/utils";
 import { AppNav } from "./app-nav";
 import { CreateSheet } from "./create-sheet";
 import type { ListType } from "@/lib/types/list";
@@ -21,6 +23,8 @@ export function useCreateSheet(): CreateSheetContextValue {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [presetType, setPresetType] = useState<ListType>("checklist");
+  // Focus mode: inside a list, mobile bottom nav disappears — keyboard + entries only.
+  const focusMode = usePathname() === "/list";
 
   function openCreate(type?: ListType) {
     if (type) setPresetType(type);
@@ -30,8 +34,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <MotionConfig reducedMotion="user">
       <CreateSheetContext.Provider value={{ openCreate }}>
-        <div className="flex min-h-dvh flex-col pb-20 md:pb-0 md:pl-20">{children}</div>
-        <AppNav onNew={() => openCreate()} />
+        <div className={cn("flex min-h-dvh flex-col md:pb-0 md:pl-20", !focusMode && "pb-20")}>
+          {children}
+        </div>
+        <AppNav onNew={() => openCreate()} hideMobile={focusMode} />
         <CreateSheet open={open} onOpenChange={setOpen} presetType={presetType} />
       </CreateSheetContext.Provider>
     </MotionConfig>

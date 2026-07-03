@@ -13,7 +13,7 @@ async function nextSortOrder(listId: string): Promise<number> {
 export async function addChecklistItem(
   listId: string,
   name: string,
-  extra?: Pick<ChecklistItem, "note" | "dueAt">,
+  extra?: Pick<ChecklistItem, "note" | "dueAt" | "section">,
 ): Promise<ChecklistItem> {
   const item: ChecklistItem = {
     id: crypto.randomUUID(),
