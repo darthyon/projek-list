@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Greeting } from "@/components/shell/greeting";
 import { ListCard } from "@/components/shell/list-card";
-import { useCreateSheet } from "@/components/shell/app-shell";
-import { getActiveLists } from "@/lib/db";
-import { cn } from "@/lib/utils";
+import { ComingSoonDialog } from "@/components/shell/coming-soon-dialog";
+import { Mascot } from "@/components/ui/mascot";
+import { createList, getActiveLists } from "@/lib/db";
 import { TYPE_META, type ListType } from "@/lib/types/list";
 
 const PITCHES: Record<ListType, string> = {
@@ -13,29 +15,53 @@ const PITCHES: Record<ListType, string> = {
   shopping: "for things to buy",
 };
 
-function TypeChips({ big }: { big?: boolean }) {
-  const { openCreate } = useCreateSheet();
+// Future list types — visible, not tappable. Not part of ListType until they ship.
+const UPCOMING = [
+  { label: "Inventory", emoji: "📦", pitch: "track what you own" },
+  { label: "Meal Plan", emoji: "🍳", pitch: "plan your meals" },
+] as const;
+
+function QuickCreateGrid() {
+  const router = useRouter();
+  const [comingSoon, setComingSoon] = useState<string | null>(null);
+
+  // Quick create skips the sheet entirely — auto-named list, straight in.
+  async function quickCreate(type: ListType) {
+    const list = await createList({ type });
+    router.push(`/list?id=${list.id}`);
+  }
+
   return (
-    <div className={cn("flex gap-2", big && "flex-col")}>
+    <div className="grid grid-cols-2 gap-3">
       {(Object.keys(TYPE_META) as ListType[]).map((type) => (
         <button
           key={type}
           type="button"
-          onClick={() => openCreate(type)}
-          className={cn(
-            "flex items-center gap-2 rounded-full border border-border bg-card transition-colors hover:bg-secondary/50 active:scale-[0.98]",
-            big ? "rounded-2xl p-5 text-left" : "px-4 py-2.5 text-sm font-medium",
-          )}
+          onClick={() => void quickCreate(type)}
+          className="flex flex-col gap-1.5 rounded-2xl bg-card p-4 text-left shadow-card transition-colors hover:bg-secondary/50 active:scale-[0.98]"
         >
-          <span className={cn(big && "text-2xl")} aria-hidden>
+          <span className="text-2xl" aria-hidden>
             {TYPE_META[type].emoji}
           </span>
-          <span className={cn(big && "flex flex-col")}>
-            <span className={cn(big && "font-bold")}>{TYPE_META[type].label}</span>
-            {big && <span className="text-sm text-muted-foreground">{PITCHES[type]}</span>}
-          </span>
+          <span className="font-heading font-bold">{TYPE_META[type].label}</span>
+          <span className="text-sm text-muted-foreground">{PITCHES[type]}</span>
         </button>
       ))}
+      {UPCOMING.map((coming) => (
+        <button
+          key={coming.label}
+          type="button"
+          onClick={() => setComingSoon(coming.label)}
+          className="flex flex-col gap-1.5 rounded-2xl bg-card p-4 text-left shadow-card transition-colors hover:bg-secondary/50 active:scale-[0.98]"
+        >
+          <span className="text-2xl" aria-hidden>
+            {coming.emoji}
+          </span>
+          <span className="font-heading font-bold">{coming.label}</span>
+          <span className="text-sm text-muted-foreground">{coming.pitch}</span>
+        </button>
+      ))}
+      <ComingSoonDialog label={comingSoon} onClose={() => setComingSoon(null)} />
     </div>
   );
 }
@@ -55,24 +81,26 @@ export default function Home() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-5 pt-8">
-      <Greeting hasLists={lists.length > 0} hasOpenTrip={hasOpenTrip} />
+      <Greeting hasOpenTrip={hasOpenTrip} />
 
-      {lists.length === 0 ? (
-        <TypeChips big />
-      ) : (
-        <>
-          <TypeChips />
-          <section aria-label="Your lists" className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {open.map((list) => (
-                <ListCard key={list.id} list={list} />
-              ))}
-              {done.map((list) => (
-                <ListCard key={list.id} list={list} />
-              ))}
-            </div>
-          </section>
-        </>
+      <div className="flex justify-center py-1">
+        <Mascot pose="writing" className="size-44 max-h-[24vh]" />
+      </div>
+
+      <QuickCreateGrid />
+
+      {lists.length > 0 && (
+        <section aria-label="Your lists" className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground">Your lists</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {open.map((list) => (
+              <ListCard key={list.id} list={list} />
+            ))}
+            {done.map((list) => (
+              <ListCard key={list.id} list={list} />
+            ))}
+          </div>
+        </section>
       )}
     </main>
   );

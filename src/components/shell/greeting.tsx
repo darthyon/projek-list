@@ -1,22 +1,21 @@
 "use client";
 
-import { useMounted } from "@/hooks/use-mounted";
-import { FIRST_USE_GREETING, OPEN_TRIP_LINE, getGreeting } from "@/lib/greeting";
+import { OPEN_TRIP_LINE } from "@/lib/greeting";
 
 interface GreetingProps {
-  hasLists: boolean;
   hasOpenTrip: boolean;
 }
 
-/** Time-based text renders only client-side — static export prerenders at build time. */
-export function Greeting({ hasLists, hasOpenTrip }: GreetingProps) {
-  const mounted = useMounted();
-  const line = mounted ? (hasLists ? getGreeting() : FIRST_USE_GREETING) : " ";
+// No profiles in MVP — the app is Yon's.
+const USERNAME = "Yon";
 
+export function Greeting({ hasOpenTrip }: GreetingProps) {
   return (
     <header className="min-h-14">
-      <h1 className="text-2xl font-bold">{line}</h1>
-      {hasOpenTrip && <p className="mt-1 text-sm text-muted-foreground">{OPEN_TRIP_LINE}</p>}
+      <h1 className="text-2xl font-bold">Hello, {USERNAME}.</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {hasOpenTrip ? OPEN_TRIP_LINE : "What are we making?"}
+      </p>
     </header>
   );
 }

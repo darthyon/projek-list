@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, IBM_Plex_Mono } from "next/font/google";
+import { DM_Sans, IBM_Plex_Mono, Shantell_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/shell/app-shell";
 import { Toaster } from "@/components/ui/sonner";
@@ -7,6 +7,11 @@ import "./globals.css";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
+  subsets: ["latin"],
+});
+
+const shantellSans = Shantell_Sans({
+  variable: "--font-shantell-sans",
   subsets: ["latin"],
 });
 
@@ -28,7 +33,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f2ea" },
+    { media: "(prefers-color-scheme: light)", color: "#f8f3ea" },
     { media: "(prefers-color-scheme: dark)", color: "#1a1815" },
   ],
   // Android/Chrome: layout viewport shrinks with the keyboard, so bottom
@@ -45,7 +50,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${dmSans.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${shantellSans.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider

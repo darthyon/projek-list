@@ -38,7 +38,7 @@ src/
 # Conventions
 - Component files: PascalCase. Utility files: camelCase.
 - All money is integer sen. Never float. Display via shared formatter with tabular-nums.
-- Undo, never confirm — no "Are you sure?" dialogs. Destructive = do it + undo toast.
+- Undo, never confirm — no "Are you sure?" dialogs. Destructive = do it + undo toast. One exception: archiving a list uses a confirmation dialog (see DESIGN.md "Mascot"); all other destructive actions stay undo-only.
 - Motion: transform/opacity only, ≤400ms, prefers-reduced-motion respected in shared primitives.
 - UX copy follows voice rules in DESIGN.md — jokes only on low-stakes surfaces, money copy always straight.
 - IDs are UUIDs (future sync insurance).

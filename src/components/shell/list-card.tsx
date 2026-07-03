@@ -57,9 +57,9 @@ export function ListCard({ list }: { list: List }) {
             if (fired.current) e.preventDefault();
           }}
           className={cn(
-            "flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs transition-colors select-none hover:bg-secondary/40",
+            "flex items-center gap-3 rounded-2xl bg-card p-4 shadow-card transition-colors select-none hover:bg-secondary/40",
             completed && "opacity-60",
-            tripOpen && "border-shopping/40",
+            tripOpen && "ring-1 ring-shopping/40",
           )}
         >
           <span

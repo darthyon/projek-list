@@ -94,7 +94,10 @@ export function CreateSheet({ open, onOpenChange, presetType }: CreateSheetProps
         />
       </div>
 
-      <Button onClick={() => void submit()} className="w-full">
+      <Button
+        onClick={() => void submit()}
+        className="h-12 w-full rounded-full text-base font-bold"
+      >
         Create
       </Button>
     </div>

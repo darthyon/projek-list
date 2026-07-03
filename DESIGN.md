@@ -9,12 +9,12 @@ First impression rule: home must read GENERAL list app — clean, zen, one accen
 - Hierarchy: 3 levels max — page title / card / row. Nothing nests deeper.
 
 ## Color
-- Surface stack (light): base `#F6F2EA` → paper card `#FDFBF7` → elevated `#FFFFFF` → hairline `#E7E0D4`. Ink `#1C1917`, secondary `#78716C`.
+- Surface stack (light): base `#F8F3EA` (matches concept board) → paper card `#FFFDF9` → elevated `#FFFFFF`. Ink `#1C1917`, secondary `#78716C`. Cards are borderless — separation via lighter surface + `--shadow-card` (tight contact + soft warm ambient).
 - Dark (day one, system-following): warm charcoal `#1A1815` base — dark paper, never pure black.
 - Type accents (sparing): Checklist = leaf green, Shopping = market amber, Tracker = blue (v1.1). Accent appears ONLY in: type chip dot, progress indicator, Shop Mode header tint. Never full-bleed.
 
 ## Typography
-- UI: **DM Sans** (assumption — swap window closes at Phase 2). Inter deliberately avoided.
+- Headings: **Shantell Sans** (h1–h3 via base layer). Body/UI: **DM Sans**. Playful-but-dry pairing, decided Jul 2026. Inter deliberately avoided.
 - Receipts + all prices: **IBM Plex Mono**.
 - `tabular-nums` everywhere a number appears. Prices must not jiggle while typing.
 - Scale contrast: medium. Bold only for: totals, list names, primary CTA.
@@ -45,14 +45,31 @@ First impression rule: home must read GENERAL list app — clean, zen, one accen
 
 ## Components
 - Radius: cards 16px, rows 12px, chips full pill.
-- Separation: bg shifts + one soft shadow level on paper cards; hairlines only inside receipts.
-- Feedback: state change first; undo toast for destructive. NO success toasts — the animation is the confirmation. No confirm dialogs anywhere.
+- Separation: borderless cards — lighter surface + `--shadow-card`; hairlines only inside receipts. No card borders anywhere (open-trip highlight = subtle ring).
+- Feedback: state change first; undo toast for destructive. NO success toasts — the animation is the confirmation. No confirm dialogs anywhere — one exception: archiving a list shows a confirmation dialog (approved Jul 2026; arms-crossed mascot, Archive/Cancel). Everything else stays undo-only, including "Done + archive list" in trip summary.
 - Sen-first price pad: custom numeric keypad, digits only, decimal auto-placed from right (420 → RM 4.20). No OS keyboard for prices.
 
 ## Icons & illustration
 - Type identity (logo-tier, never changes): ✅ Checklist, 🛒 Shopping, 📦 Tracker, 🍳 Meal Plan.
 - Per-list emoji: user's own, auto-suggested from name — personality comes from their lists.
-- UI glyphs: Lucide outline. Illustration: none, anywhere. No photos, no mascots.
+- UI glyphs: Lucide outline. No photos, no stock illustration.
+
+### Mascot (the one illustration)
+One character: deadpan line-art blob — half-lidded eyes, dot pupils, flat dash mouth, tired but reliable. Never a different character per surface.
+- Built as hand-coded inline SVG (`src/components/ui/mascot.tsx`): `stroke: currentColor`, stroke-width 3 on a 64-unit grid, round caps. No fills (except pupils), no shadows, no gradients, no glow. Static — never animated; the delight budget is unchanged.
+- Color token `--mascot`: cobalt `#2e4fcc` light / pale blue `#a9bef2` dark. Same silhouette both modes.
+- Pose-per-job — each appearance has one deliberate job, never repeated:
+
+| Surface | Pose | Copy |
+|---|---|---|
+| Home hero | writing | none — greeting pool is the screen's joke |
+| Checklist empty state | pointing (at add bar) | "start small. one thing." |
+| Shop Mode total dock | peeking (over the total) | "budget check." in info line, only when estimate exists |
+| Trip summary sheet | clap | "Okay lah. Survived." |
+| Archive dialog | arms-crossed | "Archive this list?" / "You can reopen it later. Probably." |
+
+- Rules: these 5 surfaces ONLY. Never inside list cards or rows. Never attached to money figures. Always `aria-hidden` (decorative). Apple emoji remains the functional icon system — mascot is the personality layer.
+- Pose references live in `/design-refs/` (gitignored, not shipped).
 
 ## Voice (the "subtle unhinged" contract)
 | Rule | Why |

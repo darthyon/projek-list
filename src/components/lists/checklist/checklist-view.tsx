@@ -19,6 +19,7 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Mascot } from "@/components/ui/mascot";
 import { ListHeader } from "@/components/lists/list-header";
 import { ReorderableRow } from "@/components/lists/reorderable-row";
 import { StickyAddBar } from "@/components/lists/sticky-add-bar";
@@ -360,6 +361,13 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
               ),
             )}
           </div>
+
+          {checklistItems.length === 0 && !addingSection && (
+            <div className="flex flex-1 flex-col items-center justify-end gap-3 pb-6 text-center">
+              <Mascot pose="pointing" className="size-20" />
+              <p className="text-sm text-muted-foreground">start small. one thing.</p>
+            </div>
+          )}
 
           {allDone && (
             <motion.div

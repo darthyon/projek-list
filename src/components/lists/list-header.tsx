@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ArchiveDialog } from "@/components/lists/archive-dialog";
 import {
   archiveList,
   db,
@@ -29,6 +30,7 @@ export function ListHeader({ list, children }: { list: List; children?: ReactNod
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(list.name);
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   async function saveName() {
     setEditing(false);
@@ -119,12 +121,24 @@ export function ListHeader({ list, children }: { list: List; children?: ReactNod
           >
             Duplicate
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void onArchive()}>Archive</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              // Defer past the dropdown's focus-return so the dialog stays open.
+              window.setTimeout(() => setArchiveOpen(true), 0);
+            }}
+          >
+            Archive
+          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => void onDelete()}>
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <ArchiveDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        onConfirm={() => void onArchive()}
+      />
     </header>
   );
 }

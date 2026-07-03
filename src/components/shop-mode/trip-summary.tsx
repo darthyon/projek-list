@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Mascot } from "@/components/ui/mascot";
 import { Receipt } from "./receipt";
 import { archiveList, completeShopping, restoreList } from "@/lib/db";
 import type { ShoppingItem, ShoppingList } from "@/lib/types/list";
@@ -43,6 +44,10 @@ export function TripSummary({ open, onOpenChange, list, trolley }: TripSummaryPr
         <SheetHeader className="px-0 pb-0">
           <SheetTitle className="sr-only">Trip summary</SheetTitle>
         </SheetHeader>
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <Mascot pose="clap" className="size-10" />
+          <p className="text-sm text-muted-foreground">Okay lah. Survived.</p>
+        </div>
         <div className="max-h-[55vh] overflow-y-auto py-2">
           <Receipt list={list} items={trolley} showEstLine />
         </div>
