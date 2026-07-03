@@ -3,6 +3,7 @@
 import { useRef, type KeyboardEvent, type PointerEvent } from "react";
 import { motion, useMotionValue, useTransform } from "motion/react";
 import { Trash2 } from "lucide-react";
+import { useReorderTapSuppression } from "@/components/lists/reorderable-row";
 import { cn } from "@/lib/utils";
 
 interface SwipeRowProps {
@@ -43,6 +44,9 @@ export function SwipeRow({
   const x = useMotionValue(0);
   const underlayOpacity = useTransform(x, [-72, -12], [1, 0]);
   const dragging = useRef(false);
+  const pointerOrigin = useRef<{ x: number; y: number } | null>(null);
+  const handledPointerTap = useRef(false);
+  const reorderTapSuppressedRef = useReorderTapSuppression();
 
   return (
     <motion.div
@@ -55,11 +59,13 @@ export function SwipeRow({
     >
       <motion.div
         style={{ opacity: underlayOpacity }}
-        className="absolute inset-0 flex items-center justify-end gap-1.5 rounded-xl bg-destructive pr-4 text-white"
+        className="pointer-events-none absolute inset-0 flex items-center justify-end pr-1"
         aria-hidden
       >
-        <Trash2 className="size-4" />
-        <span className="text-sm font-medium">Delete</span>
+        <span className="flex h-[calc(100%-0.5rem)] items-center gap-1.5 rounded-full bg-destructive px-4 text-white shadow-sm">
+          <Trash2 className="size-4" />
+          <span className="text-sm font-medium">Delete</span>
+        </span>
       </motion.div>
       <motion.div
         style={{ x }}
@@ -67,6 +73,31 @@ export function SwipeRow({
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={{ left: 0.4, right: 0.05 }}
         dragSnapToOrigin
+        onPointerDown={(e) => {
+          pointerOrigin.current = { x: e.clientX, y: e.clientY };
+          longPressHandlers?.onPointerDown(e);
+        }}
+        onPointerMove={(e) => {
+          longPressHandlers?.onPointerMove(e);
+        }}
+        onPointerUp={(e) => {
+          const origin = pointerOrigin.current;
+          pointerOrigin.current = null;
+          longPressHandlers?.onPointerUp();
+          if (!origin || dragging.current || clickSuppressed?.() || reorderTapSuppressedRef?.current) {
+            return;
+          }
+          const dx = e.clientX - origin.x;
+          const dy = e.clientY - origin.y;
+          if (Math.hypot(dx, dy) < 8) {
+            handledPointerTap.current = true;
+            onClick?.();
+          }
+        }}
+        onPointerCancel={() => {
+          pointerOrigin.current = null;
+          longPressHandlers?.onPointerCancel();
+        }}
         onDragStart={() => {
           dragging.current = true;
         }}
@@ -77,9 +108,16 @@ export function SwipeRow({
           if (info.offset.x < -90) onDelete();
         }}
         onClick={() => {
+          if (reorderTapSuppressedRef?.current) {
+            reorderTapSuppressedRef.current = false;
+            return;
+          }
+          if (handledPointerTap.current) {
+            handledPointerTap.current = false;
+            return;
+          }
           if (!dragging.current && !clickSuppressed?.()) onClick?.();
         }}
-        {...longPressHandlers}
         role={role}
         aria-checked={role === "checkbox" ? ariaChecked : undefined}
         aria-label={ariaLabel}

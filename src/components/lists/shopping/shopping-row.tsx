@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/context-menu";
 import { SwipeRow } from "@/components/ui/swipe-row";
 import { QtyStepper } from "./qty-stepper";
-import { useLongPress } from "@/hooks/use-long-press";
 import { formatSen } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { ShoppingItem } from "@/lib/types/list";
@@ -23,15 +22,19 @@ interface ShoppingRowProps {
 
 /** Plan-view row: name · qty stepper · price chip. Price is never required. */
 export function ShoppingRow({ item, onQty, onPrice, onDelete, onStartEdit }: ShoppingRowProps) {
-  const { handlers } = useLongPress();
-
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <SwipeRow
           onDelete={onDelete}
-          longPressHandlers={handlers}
+          onClick={onStartEdit}
           ariaLabel={item.name}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onStartEdit();
+            }
+          }}
           innerClassName="flex items-center gap-2 rounded-xl border border-border bg-card py-2 pr-2 pl-4"
         >
           <span className="min-w-0 flex-1 leading-snug break-words line-clamp-2">{item.name}</span>

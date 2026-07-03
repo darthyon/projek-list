@@ -59,6 +59,12 @@ export function updateShoppingItem(
   return db.items.update(id, changes);
 }
 
+export async function reorderItems(ids: string[]): Promise<void> {
+  await db.transaction("rw", db.items, async () => {
+    await Promise.all(ids.map((id, sortOrder) => db.items.update(id, { sortOrder })));
+  });
+}
+
 /** Check off / into the trolley. */
 export async function toggleChecked(id: string): Promise<void> {
   const item = await db.items.get(id);

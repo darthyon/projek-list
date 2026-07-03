@@ -3,17 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { AnimatePresence, LayoutGroup, Reorder, motion } from "motion/react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { InlineAddRow } from "@/components/lists/inline-add-row";
 import { ListHeader } from "@/components/lists/list-header";
+import { ReorderableRow } from "@/components/lists/reorderable-row";
+import { StickyAddBar } from "@/components/lists/sticky-add-bar";
 import { PricePad } from "@/components/shop-mode/price-pad";
 import { ShoppingRow } from "./shopping-row";
 import {
   addShoppingItem,
   deleteItem,
   getItems,
+  reorderItems,
   restoreItem,
   startShopping,
   updateShoppingItem,
@@ -52,49 +54,59 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
     router.push(`/list?id=${list.id}&mode=shop`);
   }
 
+  function persistReorder(nextItems: ShoppingItem[]) {
+    void reorderItems(nextItems.map((item) => item.id));
+  }
+
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-5 pt-6">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-5 pt-6 pb-0">
       <ListHeader list={list} />
 
       <LayoutGroup>
-        <div className="flex flex-1 flex-col gap-2">
+        <div className="flex flex-1 flex-col gap-2 pb-36">
           <AnimatePresence initial={false}>
-            {items.map((item) =>
-              editingId === item.id ? (
-                <motion.div
-                  key={item.id}
-                  layout
-                  className="rounded-xl border border-border bg-card px-4 py-2"
-                >
-                  <Input
-                    autoFocus
-                    value={editDraft}
-                    onChange={(e) => setEditDraft(e.target.value)}
-                    onBlur={() => void saveEdit(item)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void saveEdit(item);
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    aria-label="Edit item"
-                    className="border-0 px-0 shadow-none focus-visible:ring-0"
-                  />
-                </motion.div>
-              ) : (
-                <ShoppingRow
-                  key={item.id}
-                  item={item}
-                  onQty={(qty) => void updateShoppingItem(item.id, { qty })}
-                  onPrice={() => setPadItem(item)}
-                  onDelete={() => remove(item)}
-                  onStartEdit={() => {
-                    setEditDraft(item.name);
-                    setEditingId(item.id);
-                  }}
-                />
-              ),
-            )}
+            <Reorder.Group
+              axis="y"
+              values={items}
+              onReorder={persistReorder}
+              className="flex flex-col gap-2"
+            >
+              {items.map((item) => (
+                <ReorderableRow key={item.id} value={item}>
+                  {editingId === item.id ? (
+                    <motion.div
+                      layout
+                      className="rounded-xl border border-border bg-card px-4 py-2"
+                    >
+                      <Input
+                        autoFocus
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        onBlur={() => void saveEdit(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void saveEdit(item);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        aria-label="Edit item"
+                        className="border-0 px-0 shadow-none focus-visible:ring-0"
+                      />
+                    </motion.div>
+                  ) : (
+                    <ShoppingRow
+                      item={item}
+                      onQty={(qty) => void updateShoppingItem(item.id, { qty })}
+                      onPrice={() => setPadItem(item)}
+                      onDelete={() => remove(item)}
+                      onStartEdit={() => {
+                        setEditDraft(item.name);
+                        setEditingId(item.id);
+                      }}
+                    />
+                  )}
+                </ReorderableRow>
+              ))}
+            </Reorder.Group>
           </AnimatePresence>
-          <InlineAddRow label="New item" onAdd={(name) => addShoppingItem(list.id, name)} />
         </div>
       </LayoutGroup>
 
@@ -110,11 +122,13 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
         <button
           type="button"
           onClick={() => void begin()}
-          className="sticky bottom-[calc(2rem+env(safe-area-inset-bottom))] mx-auto h-12 w-full max-w-sm rounded-full bg-shopping text-base font-bold text-white shadow-md transition-transform active:scale-[0.98] md:bottom-20"
+          className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-20 mx-auto h-12 w-full max-w-sm rounded-full bg-shopping text-base font-bold text-white shadow-md transition-transform active:scale-[0.98] md:bottom-28"
         >
           Start Shopping 🛒
         </button>
       )}
+
+      <StickyAddBar label="New item" onAdd={(name) => addShoppingItem(list.id, name)} />
 
       <PricePad
         open={padItem !== null}

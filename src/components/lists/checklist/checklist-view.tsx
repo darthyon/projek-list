@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { Plus } from "lucide-react";
+import { AnimatePresence, LayoutGroup, Reorder, motion } from "motion/react";
 import { toast } from "sonner";
 import { AnimatedCheck } from "@/components/ui/animated-check";
 import {
@@ -12,9 +11,17 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { InlineAddRow } from "@/components/lists/inline-add-row";
 import { ListHeader } from "@/components/lists/list-header";
+import { ReorderableRow } from "@/components/lists/reorderable-row";
+import { StickyAddBar } from "@/components/lists/sticky-add-bar";
 import { CheckRow } from "./check-row";
 import { DueDateDialog } from "./due-date-dialog";
 import {
@@ -23,11 +30,16 @@ import {
   deleteItem,
   getItems,
   removeChecklistSection,
+  reorderItems,
   restoreItem,
   toggleChecked,
   updateChecklistItem,
 } from "@/lib/db";
 import type { ChecklistItem, ChecklistList } from "@/lib/types/list";
+
+type ChecklistSlot =
+  | { id: string; type: "header"; section: string }
+  | { id: string; type: "item"; item: ChecklistItem };
 
 function SectionHeader({ name, onRemove }: { name: string; onRemove: () => void }) {
   return (
@@ -47,44 +59,38 @@ function SectionHeader({ name, onRemove }: { name: string; onRemove: () => void 
   );
 }
 
-function NewSectionRow({ onAdd }: { onAdd: (name: string) => void }) {
-  const [active, setActive] = useState(false);
+function SectionNameField({
+  onAdd,
+  onCancel,
+}: {
+  onAdd: (name: string) => void;
+  onCancel: () => void;
+}) {
   const [value, setValue] = useState("");
 
-  if (!active) {
-    return (
-      <button
-        type="button"
-        onClick={() => setActive(true)}
-        className="mt-1 flex items-center gap-2 px-1 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase transition-colors hover:text-foreground"
-      >
-        <Plus className="size-3.5" aria-hidden />
-        New section
-      </button>
-    );
+  function commit() {
+    const name = value.trim();
+    if (name) onAdd(name);
+    else onCancel();
+    setValue("");
   }
+
   return (
-    <input
-      autoFocus
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && value.trim()) {
-          onAdd(value.trim());
-          setValue("");
-          setActive(false);
-        }
-        if (e.key === "Escape") setActive(false);
-      }}
-      onBlur={() => {
-        if (value.trim()) onAdd(value.trim());
-        setValue("");
-        setActive(false);
-      }}
-      placeholder="Section name"
-      aria-label="New section name"
-      className="mt-1 w-40 bg-transparent px-1 text-xs font-medium tracking-wide uppercase outline-none placeholder:normal-case"
-    />
+    <div className="rounded-xl border border-dashed border-border bg-card px-4 py-2">
+      <Input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") onCancel();
+        }}
+        placeholder="Section name"
+        aria-label="New section name"
+        className="h-9 border-0 px-0 text-sm shadow-none focus-visible:ring-0"
+      />
+    </div>
   );
 }
 
@@ -95,15 +101,28 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [dueItem, setDueItem] = useState<ChecklistItem | null>(null);
+  const [addingSection, setAddingSection] = useState(false);
+  const [selectedSection, setSelectedSection] = useState("");
 
   if (items === undefined) return null;
 
+  const checklistItems = items;
   const sections = list.sections ?? [];
-  const open = items.filter((i) => !i.checked);
-  const done = items.filter((i) => i.checked);
-  const allDone = items.length > 0 && open.length === 0;
-  const openIn = (section?: string) =>
-    open.filter((i) => (section === undefined ? !i.section || !sections.includes(i.section) : i.section === section));
+  const open = checklistItems.filter((i) => !i.checked);
+  const done = checklistItems.filter((i) => i.checked);
+  const allDone = checklistItems.length > 0 && open.length === 0;
+  const selectedSectionName = selectedSection && sections.includes(selectedSection) ? selectedSection : "";
+  const openSlots: ChecklistSlot[] = [
+    ...open
+      .filter((item) => !item.section || !sections.includes(item.section))
+      .map((item) => ({ id: item.id, type: "item" as const, item })),
+    ...sections.flatMap((section) => [
+      { id: `section:${section}`, type: "header" as const, section },
+      ...open
+        .filter((item) => item.section === section)
+        .map((item) => ({ id: item.id, type: "item" as const, item })),
+    ]),
+  ];
 
   function toggle(item: ChecklistItem) {
     navigator.vibrate?.(10);
@@ -121,6 +140,22 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
     setEditingId(null);
     const name = editDraft.trim();
     if (name && name !== item.name) await updateChecklistItem(item.id, { name });
+  }
+
+  function persistReorder(nextSlots: ChecklistSlot[]) {
+    let section: string | undefined;
+    const orderedOpenItems = nextSlots.flatMap((slot) => {
+      if (slot.type === "header") {
+        section = slot.section;
+        return [];
+      }
+      const nextSection = section;
+      if (slot.item.section !== nextSection) {
+        void updateChecklistItem(slot.item.id, { section: nextSection });
+      }
+      return slot.item.id;
+    });
+    void reorderItems([...orderedOpenItems, ...done.map((item) => item.id)]);
   }
 
   function renderRow(item: ChecklistItem) {
@@ -158,29 +193,66 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-5 pt-6 pb-10">
-      <ListHeader list={list} />
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-5 pt-6 pb-0">
+      <ListHeader list={list}>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Sections</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="min-w-40">
+            <DropdownMenuItem onClick={() => setAddingSection(true)}>Add section</DropdownMenuItem>
+            {sections.length > 0 && <DropdownMenuSeparator />}
+            {sections.map((section) => (
+              <DropdownMenuItem
+                key={section}
+                variant="destructive"
+                onClick={() => void removeChecklistSection(list.id, section)}
+              >
+                Remove {section}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      </ListHeader>
+
+      {addingSection && (
+        <SectionNameField
+          onAdd={(name) => {
+            void addChecklistSection(list.id, name).then(() => {
+              setSelectedSection(name);
+              setAddingSection(false);
+            });
+          }}
+          onCancel={() => setAddingSection(false)}
+        />
+      )}
 
       <LayoutGroup>
-        <div className="flex flex-1 flex-col gap-2">
-          <AnimatePresence initial={false}>{openIn(undefined).map(renderRow)}</AnimatePresence>
-          <InlineAddRow label="New item" onAdd={(name) => addChecklistItem(list.id, name)} />
-
-          {sections.map((section) => (
-            <div key={section} className="flex flex-col gap-2">
-              <SectionHeader
-                name={section}
-                onRemove={() => void removeChecklistSection(list.id, section)}
-              />
-              <AnimatePresence initial={false}>{openIn(section).map(renderRow)}</AnimatePresence>
-              <InlineAddRow
-                label="New item"
-                onAdd={(name) => addChecklistItem(list.id, name, { section })}
-              />
-            </div>
-          ))}
-
-          <NewSectionRow onAdd={(name) => void addChecklistSection(list.id, name)} />
+        <div className="flex flex-1 flex-col gap-2 pb-28">
+          <Reorder.Group
+            axis="y"
+            values={openSlots}
+            onReorder={persistReorder}
+            className="flex flex-col gap-2"
+          >
+            {openSlots.map((slot) =>
+              slot.type === "header" ? (
+                <Reorder.Item
+                  key={slot.id}
+                  value={slot}
+                  dragListener={false}
+                  className="list-none"
+                >
+                  <SectionHeader
+                    name={slot.section}
+                    onRemove={() => void removeChecklistSection(list.id, slot.section)}
+                  />
+                </Reorder.Item>
+              ) : (
+                <ReorderableRow key={slot.id} value={slot}>
+                  {renderRow(slot.item)}
+                </ReorderableRow>
+              ),
+            )}
+          </Reorder.Group>
 
           {allDone && (
             <motion.div
@@ -203,6 +275,20 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
           <AnimatePresence initial={false}>{done.map(renderRow)}</AnimatePresence>
         </div>
       </LayoutGroup>
+
+      <StickyAddBar
+        label="New item"
+        sections={sections}
+        selectedSection={selectedSectionName}
+        onSectionChange={setSelectedSection}
+        onAdd={(name) =>
+          addChecklistItem(
+            list.id,
+            name,
+            selectedSectionName ? { section: selectedSectionName } : undefined,
+          )
+        }
+      />
 
       <DueDateDialog item={dueItem} onClose={() => setDueItem(null)} />
     </div>

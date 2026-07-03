@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, MoreHorizontal } from "lucide-react";
@@ -10,12 +10,22 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { archiveList, duplicateList, renameList, restoreList, togglePinned } from "@/lib/db";
-import type { List } from "@/lib/types/list";
+import {
+  archiveList,
+  db,
+  deleteList,
+  duplicateList,
+  renameList,
+  restoreItem,
+  restoreList,
+  togglePinned,
+} from "@/lib/db";
+import type { Item, List } from "@/lib/types/list";
 
-export function ListHeader({ list }: { list: List }) {
+export function ListHeader({ list, children }: { list: List; children?: ReactNode }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(list.name);
@@ -30,6 +40,20 @@ export function ListHeader({ list }: { list: List }) {
     router.push("/");
     toast("Archived", {
       action: { label: "Undo", onClick: () => void restoreList(list.id) },
+    });
+  }
+
+  async function onDelete() {
+    const items = (await db.items.where("listId").equals(list.id).toArray()) as Item[];
+    await deleteList(list.id);
+    router.push("/");
+    toast("Deleted", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          void db.lists.add(list).then(() => Promise.all(items.map(restoreItem)));
+        },
+      },
     });
   }
 
@@ -69,6 +93,8 @@ export function ListHeader({ list }: { list: List }) {
           <MoreHorizontal className="size-5" aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {children}
+          {children && <DropdownMenuSeparator />}
           <DropdownMenuItem
             onClick={() => {
               setDraft(list.name);
@@ -94,6 +120,9 @@ export function ListHeader({ list }: { list: List }) {
             Duplicate
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => void onArchive()}>Archive</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={() => void onDelete()}>
+            Delete
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

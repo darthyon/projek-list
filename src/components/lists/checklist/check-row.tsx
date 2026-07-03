@@ -8,7 +8,6 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { SwipeRow } from "@/components/ui/swipe-row";
-import { useLongPress } from "@/hooks/use-long-press";
 import { formatDue, isOverdue } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { ChecklistItem } from "@/lib/types/list";
@@ -23,7 +22,6 @@ interface CheckRowProps {
 
 /** Delight budget #1 — check-sink. Parent's layout group animates the move below the divider. */
 export function CheckRow({ item, onToggle, onDelete, onStartEdit, onSetDue }: CheckRowProps) {
-  const { fired, handlers } = useLongPress();
   const overdue = item.dueAt !== undefined && !item.checked && isOverdue(item.dueAt);
 
   return (
@@ -32,8 +30,6 @@ export function CheckRow({ item, onToggle, onDelete, onStartEdit, onSetDue }: Ch
         <SwipeRow
           onDelete={onDelete}
           onClick={onToggle}
-          clickSuppressed={() => fired.current}
-          longPressHandlers={handlers}
           role="checkbox"
           ariaChecked={item.checked}
           ariaLabel={item.name}
