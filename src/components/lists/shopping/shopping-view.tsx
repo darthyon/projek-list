@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AnimatePresence, LayoutGroup, Reorder, motion } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { ListHeader } from "@/components/lists/list-header";
@@ -30,14 +30,21 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
     | undefined;
   const headerRef = useRef<HTMLDivElement>(null);
   const listStartRef = useRef<HTMLDivElement>(null);
+  const shoppingItemsRef = useRef<ShoppingItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [padItem, setPadItem] = useState<ShoppingItem | null>(null);
+  const [draftShoppingItems, setDraftShoppingItems] = useState<ShoppingItem[] | null>(null);
+
+  const shoppingItems = items ?? [];
+  const displayedShoppingItems = draftShoppingItems ?? shoppingItems;
+  const { total, unpricedCount } = shoppingTotals(shoppingItems);
+
+  useEffect(() => {
+    shoppingItemsRef.current = displayedShoppingItems;
+  });
 
   if (items === undefined) return null;
-
-  const shoppingItems = items;
-  const { total, unpricedCount } = shoppingTotals(shoppingItems);
 
   function remove(item: ShoppingItem) {
     void deleteItem(item.id);
@@ -59,6 +66,36 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
 
   function persistReorder(nextItems: ShoppingItem[]) {
     void reorderItems(nextItems.map((item) => item.id));
+  }
+
+  function reorderShoppingItem(draggedId: string, x: number, y: number) {
+    const currentItems = shoppingItemsRef.current;
+    const dragged = currentItems.find((item) => item.id === draggedId);
+    if (!dragged) return;
+
+    const targetEl = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-reorder-id]");
+    const targetId = targetEl?.dataset.reorderId;
+    if (!targetEl || !targetId || targetId === draggedId) return;
+
+    const nextItems = currentItems.filter((item) => item.id !== draggedId);
+    const targetIndex = nextItems.findIndex((item) => item.id === targetId);
+    if (targetIndex === -1) return;
+
+    const targetRect = targetEl.getBoundingClientRect();
+    const insertIndex = targetIndex + (y > targetRect.top + targetRect.height / 2 ? 1 : 0);
+    nextItems.splice(insertIndex, 0, dragged);
+    shoppingItemsRef.current = nextItems;
+    setDraftShoppingItems(nextItems);
+  }
+
+  function startShoppingReorder() {
+    setDraftShoppingItems(shoppingItemsRef.current);
+  }
+
+  function finishShoppingReorder() {
+    const finalItems = shoppingItemsRef.current;
+    setDraftShoppingItems(null);
+    persistReorder(finalItems);
   }
 
   function focusComposerContext() {
@@ -92,14 +129,15 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
         <div className="flex flex-1 flex-col gap-2 pb-36">
           <div ref={listStartRef} className="-mt-2 h-px" aria-hidden />
           <AnimatePresence initial={false}>
-            <Reorder.Group
-              axis="y"
-              values={shoppingItems}
-              onReorder={persistReorder}
-              className="flex flex-col gap-2"
-            >
-              {shoppingItems.map((item) => (
-                <ReorderableRow key={item.id} value={item}>
+            <div className="flex flex-col gap-2">
+              {displayedShoppingItems.map((item) => (
+                <ReorderableRow
+                  key={item.id}
+                  id={item.id}
+                  onLongPressStart={startShoppingReorder}
+                  onLongPressMove={reorderShoppingItem}
+                  onLongPressEnd={finishShoppingReorder}
+                >
                   {editingId === item.id ? (
                     <motion.div
                       layout
@@ -132,7 +170,7 @@ export function ShoppingView({ list }: { list: ShoppingList }) {
                   )}
                 </ReorderableRow>
               ))}
-            </Reorder.Group>
+            </div>
           </AnimatePresence>
         </div>
       </LayoutGroup>

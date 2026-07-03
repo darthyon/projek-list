@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -10,11 +11,14 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { Reorder, motion, useDragControls } from "motion/react";
+import { motion } from "motion/react";
 
-interface ReorderableRowProps<T> {
-  value: T;
+interface ReorderableRowProps {
+  id: string;
   children: ReactNode;
+  onLongPressStart?: (id: string) => void;
+  onLongPressMove: (id: string, x: number, y: number) => void;
+  onLongPressEnd?: (id: string) => void;
 }
 
 const ReorderGestureContext = createContext<RefObject<boolean> | null>(null);
@@ -23,8 +27,13 @@ export function useReorderTapSuppression() {
   return useContext(ReorderGestureContext);
 }
 
-export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
-  const dragControls = useDragControls();
+export function ReorderableRow({
+  id,
+  children,
+  onLongPressStart,
+  onLongPressMove,
+  onLongPressEnd,
+}: ReorderableRowProps) {
   const [pressing, setPressing] = useState(false);
   const [armed, setArmed] = useState(false);
   const suppressTap = useRef(false);
@@ -32,6 +41,7 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
   const origin = useRef<{ x: number; y: number } | null>(null);
   const activePointerId = useRef<number | null>(null);
   const activeElement = useRef<Element | null>(null);
+  const isReordering = useRef(false);
 
   const reorderStyle: CSSProperties = { touchAction: armed ? "none" : "pan-y" };
 
@@ -45,9 +55,18 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
     setArmed(false);
     activePointerId.current = null;
     activeElement.current = null;
+    isReordering.current = false;
     setTimeout(() => {
       suppressTap.current = false;
-    }, 0);
+    }, 120);
+  }
+
+  function finishGesture() {
+    const wasReordering = isReordering.current;
+    clearTimer();
+    origin.current = null;
+    if (wasReordering) onLongPressEnd?.(id);
+    clearGestureSoon();
   }
 
   function isInteractiveTarget(target: EventTarget) {
@@ -57,23 +76,48 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
     );
   }
 
+  useEffect(() => {
+    if (!armed) return;
+
+    const preventScroll = (event: TouchEvent) => {
+      event.preventDefault();
+    };
+    const finishFromWindow = () => {
+      finishGesture();
+    };
+
+    window.addEventListener("touchmove", preventScroll, { passive: false });
+    window.addEventListener("pointerup", finishFromWindow);
+    window.addEventListener("pointercancel", finishFromWindow);
+    window.addEventListener("blur", finishFromWindow);
+
+    return () => {
+      window.removeEventListener("touchmove", preventScroll);
+      window.removeEventListener("pointerup", finishFromWindow);
+      window.removeEventListener("pointercancel", finishFromWindow);
+      window.removeEventListener("blur", finishFromWindow);
+    };
+  });
+
   return (
     <ReorderGestureContext.Provider value={suppressTap}>
-      <Reorder.Item
-        value={value}
-        dragListener={false}
-        dragControls={dragControls}
+      <motion.div
+        layout
+        data-reorder-id={id}
         style={reorderStyle}
         onPointerDown={(event: PointerEvent) => {
           if (isInteractiveTarget(event.target)) return;
           activeElement.current = event.currentTarget;
           activePointerId.current = event.pointerId;
           origin.current = { x: event.clientX, y: event.clientY };
+          isReordering.current = false;
+          suppressTap.current = false;
           setPressing(true);
           setArmed(false);
           clearTimer();
           timer.current = setTimeout(() => {
             suppressTap.current = true;
+            isReordering.current = true;
             setArmed(true);
             const element = activeElement.current;
             const pointerId = activePointerId.current;
@@ -85,15 +129,16 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
               }
             }
             navigator.vibrate?.(8);
-            dragControls.start(event);
+            onLongPressStart?.(id);
           }, 300);
         }}
         onPointerMove={(event: PointerEvent) => {
-          if (suppressTap.current) {
+          if (isReordering.current) {
             event.preventDefault();
+            onLongPressMove(id, event.clientX, event.clientY);
             return;
           }
-          if (!origin.current || suppressTap.current) return;
+          if (!origin.current) return;
           const dx = event.clientX - origin.current.x;
           const dy = event.clientY - origin.current.y;
           if (Math.hypot(dx, dy) > 8) {
@@ -102,31 +147,31 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
             setArmed(false);
           }
         }}
-        onPointerUp={() => {
-          clearTimer();
-          origin.current = null;
-          clearGestureSoon();
-        }}
-        onPointerCancel={() => {
-          clearTimer();
-          origin.current = null;
-          clearGestureSoon();
-        }}
-        className="relative list-none"
+        onPointerUp={finishGesture}
+        onPointerCancel={finishGesture}
+        onLostPointerCapture={finishGesture}
+        className={`relative list-none ${armed ? "z-20" : "z-0"}`}
       >
         <motion.div
           animate={{
-            scale: armed ? 1.012 : pressing ? 0.992 : 1,
-            y: armed ? -2 : 0,
+            scale: armed ? 1.016 : pressing ? 0.994 : 1,
+            y: armed ? -3 : 0,
           }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
-          className="relative rounded-xl"
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          className="relative rounded-xl will-change-transform"
         >
           {children}
           <motion.span
             aria-hidden
-            animate={{ opacity: pressing || armed ? 1 : 0 }}
-            className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-foreground/10"
+            animate={{ opacity: pressing && !armed ? 1 : 0 }}
+            transition={{ duration: 0.12 }}
+            className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-foreground/8"
+          />
+          <motion.span
+            aria-hidden
+            animate={{ opacity: armed ? 1 : 0 }}
+            transition={{ duration: 0.14 }}
+            className="pointer-events-none absolute inset-px rounded-[11px] bg-gradient-to-b from-background/45 to-transparent"
           />
           <motion.span
             aria-hidden
@@ -139,10 +184,10 @@ export function ReorderableRow<T>({ value, children }: ReorderableRowProps<T>) {
             aria-hidden
             animate={{ opacity: armed ? 1 : 0 }}
             transition={{ duration: 0.12 }}
-            className="pointer-events-none absolute inset-x-3 -bottom-1 h-3 rounded-full bg-foreground/10 blur-md"
+            className="pointer-events-none absolute inset-x-4 -bottom-2 h-5 rounded-full bg-foreground/15 blur-xl"
           />
         </motion.div>
-      </Reorder.Item>
+      </motion.div>
     </ReorderGestureContext.Provider>
   );
 }

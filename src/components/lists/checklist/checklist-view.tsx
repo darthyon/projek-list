@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AnimatePresence, LayoutGroup, Reorder, motion } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { toast } from "sonner";
 import { AnimatedCheck } from "@/components/ui/animated-check";
 import {
@@ -114,11 +114,13 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
   const headerRef = useRef<HTMLDivElement>(null);
   const inboxRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef(new Map<string, HTMLDivElement>());
+  const openSlotsRef = useRef<ChecklistSlot[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [dueItem, setDueItem] = useState<ChecklistItem | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [selectedSection, setSelectedSection] = useState("");
+  const [draftOpenSlots, setDraftOpenSlots] = useState<ChecklistSlot[] | null>(null);
 
   useEffect(() => {
     if (!addingSection) return;
@@ -128,9 +130,7 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
     return () => window.clearTimeout(focusTimer);
   }, [addingSection]);
 
-  if (items === undefined) return null;
-
-  const checklistItems = items;
+  const checklistItems = items ?? [];
   const sections = list.sections ?? [];
   const open = checklistItems.filter((i) => !i.checked);
   const done = checklistItems.filter((i) => i.checked);
@@ -147,6 +147,13 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
         .map((item) => ({ id: item.id, type: "item" as const, item })),
     ]),
   ];
+  const displayedOpenSlots = draftOpenSlots ?? openSlots;
+
+  useEffect(() => {
+    openSlotsRef.current = displayedOpenSlots;
+  });
+
+  if (items === undefined) return null;
 
   function toggle(item: ChecklistItem) {
     navigator.vibrate?.(10);
@@ -180,6 +187,38 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
       return slot.item.id;
     });
     void reorderItems([...orderedOpenItems, ...done.map((item) => item.id)]);
+  }
+
+  function reorderOpenSlot(draggedId: string, x: number, y: number) {
+    const slots = openSlotsRef.current;
+    const dragged = slots.find((slot) => slot.id === draggedId);
+    if (!dragged || dragged.type !== "item") return;
+
+    const targetEl = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-reorder-id]");
+    const targetId = targetEl?.dataset.reorderId;
+    if (!targetEl || !targetId || targetId === draggedId) return;
+
+    const nextSlots = slots.filter((slot) => slot.id !== draggedId);
+    const targetIndex = nextSlots.findIndex((slot) => slot.id === targetId);
+    if (targetIndex === -1) return;
+
+    const targetSlot = nextSlots[targetIndex];
+    const targetRect = targetEl.getBoundingClientRect();
+    const insertAfter = targetSlot.type === "header" || y > targetRect.top + targetRect.height / 2;
+    const insertIndex = targetIndex + (insertAfter ? 1 : 0);
+    nextSlots.splice(insertIndex, 0, dragged);
+    openSlotsRef.current = nextSlots;
+    setDraftOpenSlots(nextSlots);
+  }
+
+  function startOpenSlotReorder() {
+    setDraftOpenSlots(openSlotsRef.current);
+  }
+
+  function finishOpenSlotReorder() {
+    const finalSlots = openSlotsRef.current;
+    setDraftOpenSlots(null);
+    persistReorder(finalSlots);
   }
 
   function focusComposerContext() {
@@ -287,18 +326,13 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
       <LayoutGroup>
         <div className="flex flex-1 flex-col gap-2 pb-28">
           <div ref={inboxRef} className="-mt-2 h-px" aria-hidden />
-          <Reorder.Group
-            axis="y"
-            values={openSlots}
-            onReorder={persistReorder}
-            className="flex flex-col gap-2"
-          >
-            {openSlots.map((slot) =>
+          <div className="flex flex-col gap-2">
+            {displayedOpenSlots.map((slot) =>
               slot.type === "header" ? (
-                <Reorder.Item
+                <motion.div
                   key={slot.id}
-                  value={slot}
-                  dragListener={false}
+                  layout
+                  data-reorder-id={slot.id}
                   className="list-none"
                 >
                   <div
@@ -312,14 +346,20 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
                       onRemove={() => void removeChecklistSection(list.id, slot.section)}
                     />
                   </div>
-                </Reorder.Item>
+                </motion.div>
               ) : (
-                <ReorderableRow key={slot.id} value={slot}>
+                <ReorderableRow
+                  key={slot.id}
+                  id={slot.id}
+                  onLongPressStart={startOpenSlotReorder}
+                  onLongPressMove={reorderOpenSlot}
+                  onLongPressEnd={finishOpenSlotReorder}
+                >
                   {renderRow(slot.item)}
                 </ReorderableRow>
               ),
             )}
-          </Reorder.Group>
+          </div>
 
           {allDone && (
             <motion.div
