@@ -39,7 +39,7 @@ export function CheckRow({ item, onToggle, onDelete, onStartEdit, onSetDue }: Ch
               onToggle();
             }
           }}
-          innerClassName="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 focus-visible:outline-2 focus-visible:outline-ring"
+          innerClassName="flex cursor-pointer items-center gap-3 rounded-xl bg-card px-4 py-3 shadow-card focus-visible:outline-2 focus-visible:outline-ring"
         >
           <span
             aria-hidden

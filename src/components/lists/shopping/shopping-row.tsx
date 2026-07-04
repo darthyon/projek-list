@@ -35,7 +35,7 @@ export function ShoppingRow({ item, onQty, onPrice, onDelete, onStartEdit }: Sho
               onStartEdit();
             }
           }}
-          innerClassName="flex items-center gap-2 rounded-xl border border-border bg-card py-2 pr-2 pl-4"
+          innerClassName="flex items-center gap-2 rounded-xl bg-card py-2 pr-2 pl-4 shadow-card"
         >
           <span className="min-w-0 flex-1 leading-snug break-words line-clamp-2">{item.name}</span>
           <QtyStepper qty={item.qty} unit={item.unit} onChange={onQty} />

@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className={cn("flex min-h-dvh flex-col md:pb-0 md:pl-20", !focusMode && "pb-20")}>
           {children}
         </div>
-        <AppNav onNew={() => openCreate()} hideMobile={focusMode} />
+        <AppNav onNew={openCreate} hideMobile={focusMode} />
         <CreateSheet open={open} onOpenChange={setOpen} presetType={presetType} />
       </CreateSheetContext.Provider>
     </MotionConfig>

@@ -1,12 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Greeting } from "@/components/shell/greeting";
 import { ListCard } from "@/components/shell/list-card";
 import { ComingSoonDialog } from "@/components/shell/coming-soon-dialog";
-import { Mascot } from "@/components/ui/mascot";
 import { createList, getActiveLists } from "@/lib/db";
 import { TYPE_META, type ListType } from "@/lib/types/list";
 
@@ -80,17 +80,27 @@ export default function Home() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-5 pt-8">
+    <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-5 pt-8 pb-8">
       <Greeting hasOpenTrip={hasOpenTrip} />
 
-      <div className="flex justify-center py-1">
-        <Mascot pose="writing" className="size-44 max-h-[24vh]" />
+      <div className="flex justify-center pb-2">
+        <Image
+          src="/img-list.svg"
+          alt=""
+          aria-hidden="true"
+          width={771}
+          height={807}
+          className="h-auto w-48 max-h-[30vh]"
+          priority
+        />
       </div>
 
-      <QuickCreateGrid />
+      <div className="-mt-16 pt-0">
+        <QuickCreateGrid />
+      </div>
 
       {lists.length > 0 && (
-        <section aria-label="Your lists" className="space-y-3">
+        <section aria-label="Your lists" className="pt-2 space-y-3">
           <h2 className="text-sm font-medium text-muted-foreground">Your lists</h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {open.map((list) => (
