@@ -94,7 +94,7 @@ export function ListHeader({ list, children }: { list: List; children?: ReactNod
         >
           <MoreHorizontal className="size-5" aria-hidden />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="min-w-44">
           {children}
           {children && <DropdownMenuSeparator />}
           <DropdownMenuItem

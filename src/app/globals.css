@@ -138,7 +138,7 @@
 .receipt-edge {
   mask-image:
     linear-gradient(black, black),
-    conic-gradient(from -45deg at 50% 100%, transparent 90deg, black 90deg);
+    conic-gradient(from 135deg at 50% 0, transparent 90deg, black 90deg);
   mask-size:
     100% calc(100% - 8px),
     16px 8px;

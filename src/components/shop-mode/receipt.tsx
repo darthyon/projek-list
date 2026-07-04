@@ -30,7 +30,7 @@ export function Receipt({ list, items, showEstLine }: ReceiptProps) {
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
-      className="receipt-edge bg-popover px-5 pt-5 pb-8 font-mono text-sm text-popover-foreground shadow-md"
+      className="receipt-edge rounded-t-2xl bg-popover px-5 pt-5 pb-12 font-mono text-sm text-popover-foreground shadow-md"
     >
       <div className="text-center">
         <p className="text-base font-semibold">
@@ -92,7 +92,7 @@ export function Receipt({ list, items, showEstLine }: ReceiptProps) {
         )}
       </div>
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
+      <p className="mt-5 pb-1 text-center text-xs text-muted-foreground">
         Terima kasih, datang lagi.
       </p>
     </motion.div>

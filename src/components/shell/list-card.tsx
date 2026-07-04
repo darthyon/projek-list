@@ -59,7 +59,6 @@ export function ListCard({ list }: { list: List }) {
           className={cn(
             "flex items-center gap-3 rounded-2xl bg-card p-4 shadow-card transition-colors select-none hover:bg-secondary/40",
             completed && "opacity-60",
-            tripOpen && "ring-1 ring-shopping/40",
           )}
         >
           <span
