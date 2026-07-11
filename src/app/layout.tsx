@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, IBM_Plex_Mono, Shantell_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
 import { AppShell } from "@/components/shell/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -59,8 +60,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AppShell>{children}</AppShell>
-          <Toaster position="top-center" />
+          <ConvexClientProvider>
+            <AppShell>{children}</AppShell>
+            <Toaster position="top-center" />
+          </ConvexClientProvider>
         </ThemeProvider>
       </body>
     </html>

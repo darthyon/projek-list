@@ -29,7 +29,11 @@ export async function createList(input: {
   const list: List =
     input.type === "shopping"
       ? { ...base, type: "shopping", completedAt: null, estTotalAtStart: null }
-      : { ...base, type: "checklist" };
+      : input.type === "tracker"
+        ? { ...base, type: "tracker" }
+        : input.type === "mealplan"
+          ? { ...base, type: "mealplan" }
+          : { ...base, type: "checklist" };
   await db.lists.add(list);
   return list;
 }

@@ -1,16 +1,26 @@
 import type * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { WRITING_PATHS } from "./mascot-writing-paths";
 
 /**
  * The mascot — one deadpan line-art character, five poses, each with one job.
  * Approved surfaces only (see DESIGN.md "Mascot"). Always decorative, never animated.
- * Drawn on a 64-unit grid, stroke 3, recolored via --mascot (cobalt light / pale blue dark).
+ * Inline poses drawn on a 64-unit grid, stroke 3, recolored via --mascot (cobalt light / pale blue dark).
+ * Asset poses use standalone SVGs from /public.
+ *
+ * Pose asset status:
+ *   writing      ✓  img-list.svg
+ *   pointing     ✗  empty — needs asset
+ *   clap         —  using arms-crossed as placeholder (trip-summary.tsx)
+ *   arms-crossed ✓  img-cross arm.svg
+ *   peeking      ✓  img-peeking.svg (removed from shop-mode for now)
  */
 export type MascotPose = "writing" | "pointing" | "clap" | "arms-crossed" | "peeking";
 
-interface MascotProps extends React.ComponentProps<"svg"> {
+interface MascotProps {
   pose: MascotPose;
+  className?: string;
 }
 
 /* Shared face so the deadpan expression never drifts between poses.
@@ -87,32 +97,35 @@ const POSES: Record<MascotPose, React.ReactNode> = {
     </>
   ),
   /* Arms crossed, waiting for you to decide. Archive dialog. */
-  "arms-crossed": (
-    <>
-      <circle cx={32} cy={14} r={12.5} />
-      <Face x={32} y={15} />
-      {/* torso */}
-      <path d="M22 24 c-5 8 -7 17 -6 26" />
-      <path d="M42 24 c5 8 7 17 6 26" />
-      {/* crossed arms */}
-      <path d="M17 35 c9 7 21 7 30 -1" />
-      <path d="M47 40 c-9 -7 -21 -7 -30 1" />
-      {/* tucked fingers */}
-      <path d="M38 34 c1.5 1 3 1.5 5 1.5 M38 37.5 c1.5 1 3 1.5 5 1.5" strokeWidth={2} />
-      {/* stubby legs */}
-      <path d="M27 50 v8 M37 50 v8" />
-    </>
-  ),
+  "arms-crossed": null,
   /* Top of head over an edge. Shop Mode total dock. */
-  peeking: (
-    <>
-      <path d="M6 36 c0 -17 11.5 -27 26 -27 s26 10 26 27" />
-      <Face x={32} y={27} s={1.5} mouth={false} />
-    </>
-  ),
+  peeking: null,
 };
 
-export function Mascot({ pose, className, ...props }: MascotProps) {
+const ASSET_SRC: Partial<Record<MascotPose, string>> = {
+  "arms-crossed": "/img-cross arm.svg",
+  peeking: "/img-peeking.svg",
+  pointing: "",
+};
+
+export function Mascot({ pose, className }: MascotProps) {
+  const assetSrc = ASSET_SRC[pose];
+
+  if (assetSrc !== undefined) {
+    if (assetSrc === "") return null;
+    return (
+      <Image
+        src={assetSrc}
+        alt=""
+        aria-hidden="true"
+        unoptimized
+        width={64}
+        height={64}
+        className={cn("shrink-0", className)}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox={VIEWBOX[pose]}
@@ -124,7 +137,6 @@ export function Mascot({ pose, className, ...props }: MascotProps) {
       aria-hidden="true"
       focusable="false"
       className={cn("shrink-0 text-mascot", className)}
-      {...props}
     >
       {POSES[pose]}
     </svg>

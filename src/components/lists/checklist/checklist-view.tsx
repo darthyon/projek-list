@@ -364,7 +364,7 @@ export function ChecklistView({ list }: { list: ChecklistList }) {
 
           {checklistItems.length === 0 && !addingSection && (
             <div className="flex flex-1 flex-col items-center justify-end gap-3 pb-6 text-center">
-              <Mascot pose="pointing" className="size-20" />
+              <Mascot pose="arms-crossed" className="size-20" />
               <p className="text-sm text-muted-foreground">start small. one thing.</p>
             </div>
           )}

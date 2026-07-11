@@ -22,6 +22,8 @@ interface CreateSheetProps {
 const PITCHES: Record<ListType, string> = {
   checklist: "for things to do",
   shopping: "for things to buy",
+  tracker: "track what you own",
+  mealplan: "plan your meals",
 };
 
 export function CreateSheet({ open, onOpenChange, presetType }: CreateSheetProps) {

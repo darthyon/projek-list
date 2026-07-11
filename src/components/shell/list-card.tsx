@@ -12,7 +12,7 @@ import { useLongPress } from "@/hooks/use-long-press";
 import { archiveList, duplicateList, getItems, togglePinned } from "@/lib/db";
 import { formatSen } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { shoppingTotals, type List, type ShoppingItem } from "@/lib/types/list";
+import { shoppingTotals, type List, type MealPlanItem, type ShoppingItem, type TrackerItem } from "@/lib/types/list";
 
 export function ListCard({ list }: { list: List }) {
   const { fired, handlers } = useLongPress();
@@ -27,6 +27,15 @@ export function ListCard({ list }: { list: List }) {
     if (list.type === "checklist") {
       const done = items.filter((i) => i.checked).length;
       subtitle = `${done}/${items.length} done`;
+    } else if (list.type === "tracker") {
+      const trackerItems = items as TrackerItem[];
+      const low = trackerItems.filter((i) => i.lowStockThreshold !== undefined && i.qty <= i.lowStockThreshold).length;
+      subtitle = `${items.length} item${items.length === 1 ? "" : "s"}`;
+      if (low > 0) subtitle += ` · ${low} low stock`;
+    } else if (list.type === "mealplan") {
+      const mealPlanItems = items as MealPlanItem[];
+      const totalServings = mealPlanItems.reduce((sum, i) => sum + i.servings, 0);
+      subtitle = `${items.length} meal${items.length === 1 ? "" : "s"} · ${totalServings} serving${totalServings === 1 ? "" : "s"}`;
     } else {
       const shoppingItems = items as ShoppingItem[];
       if (tripOpen) {
@@ -72,7 +81,13 @@ export function ListCard({ list }: { list: List }) {
               <span
                 className={cn(
                   "size-1.5 shrink-0 rounded-full",
-                  list.type === "checklist" ? "bg-checklist" : "bg-shopping",
+                  list.type === "checklist"
+                    ? "bg-checklist"
+                    : list.type === "tracker"
+                      ? "bg-tracker"
+                      : list.type === "mealplan"
+                        ? "bg-mealplan"
+                        : "bg-shopping",
                 )}
                 aria-hidden
               />

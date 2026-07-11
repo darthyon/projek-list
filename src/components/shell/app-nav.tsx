@@ -31,8 +31,8 @@ interface FabOption {
 const FAB_OPTIONS: FabOption[] = [
   { label: "Checklist", emoji: "✅", type: "checklist" },
   { label: "Shopping", emoji: "🛒", type: "shopping" },
-  { label: "Inventory", emoji: "📦", upcoming: "Inventory" },
-  { label: "Meal Plan", emoji: "🍳", upcoming: "Meal Plan" },
+  { label: "Tracker", emoji: "📦", type: "tracker" },
+  { label: "Meal Plan", emoji: "🍳", type: "mealplan" },
 ];
 
 function NavLink({
@@ -184,10 +184,10 @@ export function AppNav({
       destination: { kind: "link", href: "/lists" },
     },
     {
-      label: "Inventory",
+      label: "Tracker",
       shortLabel: "Stock",
       icon: Package,
-      destination: { kind: "action", onSelect: () => setComingSoon("Inventory") },
+      destination: { kind: "action", onSelect: () => setComingSoon("Tracker") },
     },
     {
       label: "Meal Plan",

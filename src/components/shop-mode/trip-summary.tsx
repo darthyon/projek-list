@@ -45,7 +45,7 @@ export function TripSummary({ open, onOpenChange, list, trolley }: TripSummaryPr
           <SheetTitle className="sr-only">Trip summary</SheetTitle>
         </SheetHeader>
         <div className="flex items-center justify-center gap-2 pt-1">
-          <Mascot pose="clap" className="size-10" />
+          <Mascot pose="arms-crossed" className="size-10" />
           <p className="text-sm text-muted-foreground">Okay lah. Survived.</p>
         </div>
         <div className="max-h-[55vh] overflow-y-auto py-2">

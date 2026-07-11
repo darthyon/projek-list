@@ -7,7 +7,6 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Mascot } from "@/components/ui/mascot";
 import { AddItemBar } from "@/components/lists/add-item-bar";
 import { PricePad } from "./price-pad";
 import { ShopRow } from "./shop-row";
@@ -165,9 +164,8 @@ export function ShopMode({ list }: { list: ShoppingList }) {
         </LayoutGroup>
       </div>
 
-      {/* Pinned total bar — mascot keeps an eye on the number */}
+      {/* Pinned total bar */}
       <div className="relative border-t border-shopping/20 bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <Mascot pose="peeking" className="absolute -top-[27px] right-6 h-[27px] w-12" />
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="font-mono text-xl font-bold tabular-nums">{formatSen(total)}</p>
