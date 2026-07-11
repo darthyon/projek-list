@@ -1,12 +1,13 @@
 /** Money is always integer sen. Never float ringgit. */
 export type Sen = number;
 
-/** MVP implements checklist + shopping. 'tracker' (v1.1) and 'mealplan' (later) join this union when built. */
-export type ListType = "checklist" | "shopping";
+export type ListType = "checklist" | "shopping" | "tracker" | "mealplan";
 
 export const TYPE_META: Record<ListType, { label: string; emoji: string }> = {
   checklist: { label: "Checklist", emoji: "✅" },
   shopping: { label: "Shopping", emoji: "🛒" },
+  tracker: { label: "Tracker", emoji: "📦" },
+  mealplan: { label: "Meal Plan", emoji: "🍳" },
 };
 
 interface BaseList {
@@ -32,7 +33,15 @@ export interface ShoppingList extends BaseList {
   estTotalAtStart: Sen | null;
 }
 
-export type List = ChecklistList | ShoppingList;
+export interface TrackerList extends BaseList {
+  type: "tracker";
+}
+
+export interface MealPlanList extends BaseList {
+  type: "mealplan";
+}
+
+export type List = ChecklistList | ShoppingList | TrackerList | MealPlanList;
 
 interface BaseItem {
   id: string;
@@ -58,7 +67,19 @@ export interface ShoppingItem extends BaseItem {
   weight?: number;
 }
 
-export type Item = ChecklistItem | ShoppingItem;
+export interface TrackerItem extends BaseItem {
+  qty: number;
+  unit?: string;
+  /** When qty ≤ this, the row shows a low-stock indicator. */
+  lowStockThreshold?: number;
+}
+
+export interface MealPlanItem extends BaseItem {
+  servings: number;
+  note?: string;
+}
+
+export type Item = ChecklistItem | ShoppingItem | TrackerItem | MealPlanItem;
 
 /** Row total for a shopping item, or null while unpriced. */
 export function itemTotal(item: ShoppingItem): Sen | null {

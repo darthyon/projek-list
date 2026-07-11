@@ -7,6 +7,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ChecklistView } from "@/components/lists/checklist/checklist-view";
 import { CompletedView } from "@/components/lists/shopping/completed-view";
 import { ShoppingView } from "@/components/lists/shopping/shopping-view";
+import { TrackerView } from "@/components/lists/tracker/tracker-view";
+import { MealPlanView } from "@/components/lists/mealplan/mealplan-view";
 import { ShopMode } from "@/components/shop-mode/shop-mode";
 import { getList } from "@/lib/db";
 
@@ -30,6 +32,8 @@ function ListView() {
   }
 
   if (list.type === "checklist") return <ChecklistView list={list} />;
+  if (list.type === "tracker") return <TrackerView list={list} />;
+  if (list.type === "mealplan") return <MealPlanView list={list} />;
 
   if (list.completedAt !== null) return <CompletedView list={list} />;
   if (shopMode) return <ShopMode list={list} />;

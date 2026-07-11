@@ -13,13 +13,12 @@ import { TYPE_META, type ListType } from "@/lib/types/list";
 const PITCHES: Record<ListType, string> = {
   checklist: "for things to do",
   shopping: "for things to buy",
+  tracker: "track what you own",
+  mealplan: "plan your meals",
 };
 
 // Future list types — visible, not tappable. Not part of ListType until they ship.
-const UPCOMING = [
-  { label: "Inventory", emoji: "📦", pitch: "track what you own" },
-  { label: "Meal Plan", emoji: "🍳", pitch: "plan your meals" },
-] as const;
+const UPCOMING: readonly { label: string; emoji: string; pitch: string }[] = [];
 
 function QuickCreateGrid() {
   const router = useRouter();

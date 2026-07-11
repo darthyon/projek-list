@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ChevronRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -9,6 +10,11 @@ import { useMounted } from "@/hooks/use-mounted";
 import { exportBackup, importBackup } from "@/lib/db/backup";
 import { resetAndSeed } from "@/lib/mocks/seed";
 import { cn } from "@/lib/utils";
+
+const CloudBackupDialog = dynamic(
+  () => import("@/components/settings/cloud-backup-dialog").then((m) => ({ default: m.CloudBackupDialog })),
+  { ssr: false },
+);
 
 const THEMES = ["system", "light", "dark"] as const;
 
@@ -27,6 +33,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [cloudOpen, setCloudOpen] = useState(false);
 
   async function onExport() {
     const blob = await exportBackup();
@@ -112,6 +119,16 @@ export default function SettingsPage() {
         </>
       </Row>
 
+      <Row label="Cloud backup">
+        <button
+          type="button"
+          onClick={() => setCloudOpen(true)}
+          className="rounded-full border border-border px-3 py-1 text-sm transition-colors hover:bg-secondary"
+        >
+          Open
+        </button>
+      </Row>
+
       <Link
         href="/settings/archived"
         className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-secondary/40"
@@ -133,6 +150,7 @@ export default function SettingsPage() {
           </button>
         </Row>
       )}
+      <CloudBackupDialog open={cloudOpen} onOpenChange={setCloudOpen} />
     </main>
   );
 }

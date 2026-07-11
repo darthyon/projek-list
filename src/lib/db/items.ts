@@ -1,5 +1,5 @@
 import { db } from "./db";
-import type { ChecklistItem, Item, ShoppingItem } from "@/lib/types/list";
+import type { ChecklistItem, Item, MealPlanItem, ShoppingItem, TrackerItem } from "@/lib/types/list";
 
 export function getItems(listId: string): Promise<Item[]> {
   return db.items.where("listId").equals(listId).sortBy("sortOrder");
@@ -55,6 +55,56 @@ export function updateChecklistItem(
 export function updateShoppingItem(
   id: string,
   changes: Partial<Omit<ShoppingItem, "id" | "listId">>,
+): Promise<number> {
+  return db.items.update(id, changes);
+}
+
+export async function addTrackerItem(
+  listId: string,
+  name: string,
+  extra?: Partial<Pick<TrackerItem, "qty" | "unit" | "lowStockThreshold">>,
+): Promise<TrackerItem> {
+  const item: TrackerItem = {
+    id: crypto.randomUUID(),
+    listId,
+    name: name.trim(),
+    checked: false,
+    sortOrder: await nextSortOrder(listId),
+    qty: 1,
+    ...extra,
+  };
+  await db.items.add(item);
+  return item;
+}
+
+export function updateTrackerItem(
+  id: string,
+  changes: Partial<Omit<TrackerItem, "id" | "listId">>,
+): Promise<number> {
+  return db.items.update(id, changes);
+}
+
+export async function addMealPlanItem(
+  listId: string,
+  name: string,
+  extra?: Partial<Pick<MealPlanItem, "servings" | "note">>,
+): Promise<MealPlanItem> {
+  const item: MealPlanItem = {
+    id: crypto.randomUUID(),
+    listId,
+    name: name.trim(),
+    checked: false,
+    sortOrder: await nextSortOrder(listId),
+    servings: 1,
+    ...extra,
+  };
+  await db.items.add(item);
+  return item;
+}
+
+export function updateMealPlanItem(
+  id: string,
+  changes: Partial<Omit<MealPlanItem, "id" | "listId">>,
 ): Promise<number> {
   return db.items.update(id, changes);
 }
