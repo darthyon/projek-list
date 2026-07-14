@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, IBM_Plex_Mono, Shantell_Sans } from "next/font/google";
+import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
 import { AppShell } from "@/components/shell/app-shell";
@@ -54,17 +55,19 @@ export default function RootLayout({
       className={`${dmSans.variable} ${shantellSans.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <ConvexClientProvider>
-            <AppShell>{children}</AppShell>
-            <Toaster position="top-center" />
-          </ConvexClientProvider>
-        </ThemeProvider>
+        <ServiceWorkerProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <ConvexClientProvider>
+              <AppShell>{children}</AppShell>
+              <Toaster position="top-center" />
+            </ConvexClientProvider>
+          </ThemeProvider>
+        </ServiceWorkerProvider>
       </body>
     </html>
   );
